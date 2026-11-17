@@ -92,6 +92,7 @@ ChatUI supports these common workflows:
   If the list does not fill the sidebar, more pages load automatically. Opening an older conversation by URL keeps its title and selected sidebar entry visible before its page loads.
 - Create, rename, and delete conversations, and switch previous conversations from the sidebar.
 - Select the config profile, model provider, and model on the chat page; if Provider session separation is enabled, you can also choose a model for the current session only.
+- Choose a thinking level (low / medium / high) for the current conversation at the top of the model selector; see [Thinking level](#thinking-level) below.
 - Choose a permission mode for the current conversation (Workspace / Ask for approval / Full access) next to **+** in the input box. Tools that need approval show an approval card above the input box, and the outcome stays in the reply. See [Tool approval and permission modes](./tool-approval.md).
 - Send text, images, files, and voice input; uploaded attachments show previews and use file signature checks to help identify file types.
 - See the changes the model made to local files and undo a single change; see [File changes and undo](#file-changes-and-undo) below.
@@ -116,6 +117,20 @@ When the Agent runs in the local (`local`) computer runtime, the cards of the fi
 Each change can be undone once. The file is restored by writing a temporary file in the same folder and replacing the original, keeping its permissions. Files over 512 KB or not UTF-8 text show only the path, without a preview or undo; symbolic links get no undo.
 
 Undo records are kept under `chatui_file_undo` in the AstrBot data directory, up to the latest 300 (each keeps the full previous content, about 200 MB in the worst case); deleting a conversation or thread removes its records. Non-local runtimes such as the sandbox and platforms other than ChatUI do not show these cards.
+
+### Thinking level
+
+The **Thinking level** at the top of the model selector applies to the current conversation only and is shown after the model name. Every send, regenerate, and thread message carries it; the backend translates it into each provider type's own parameter and sends it only to the model selected for the request (never to fallback providers):
+
+| Provider type | What is sent |
+|---|---|
+| OpenAI-compatible (Chat Completions), including OpenRouter, AIHubMix, Groq, Kimi Code | `reasoning_effort` |
+| OpenAI Responses | `reasoning.effort` (other `reasoning` fields from the configuration are kept) |
+| xAI | `reasoning_effort`, with only the low and high levels |
+| Anthropic | Adaptive thinking with `output_config.effort` on Claude 4.6 and newer; a matching thinking budget (at most half of the output limit) on Claude 4.5 and older and on non-Claude compatible models |
+| Google Gemini | A thinking level on Gemini 3 and 4 (a level the model does not offer falls back to the model default); a thinking budget on Gemini 2.5 |
+
+Other provider types show no levels and keep their provider configuration. A new conversation starts at the default level (low) instead of inheriting the previous one. The choice is stored in this browser (one entry per conversation) and is removed when the conversation is deleted. It affects ChatUI only: provider configuration and other platforms are unchanged. Plugins can read or change `ProviderRequest.reasoning_effort` in `on_llm_request`.
 
 > [!NOTE]
 > To keep message delivery ordered, keep only one ChatUI page open for the same browser session. If you open chat in multiple tabs, the system may ask you to reconnect.

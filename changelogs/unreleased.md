@@ -61,3 +61,9 @@
 - Move view declarations from `Star.chatui_views` to `metadata.yaml` under `views`. Keep default labels in metadata and override them with i18n `views.<name>` (legacy `pages.<name>` remains supported). Existing declarations without a target remain standalone `plugin_page` views.
 - `chat_workbench` + `launcher=True` → `chat_workbench_with_launcher`：同一视图既能由消息或工具打开，也能从工作台「＋」打开。只由插件打开的视图继续使用 `chat_workbench`。
 - Replace `chat_workbench` + `launcher=True` with `chat_workbench_with_launcher` for views that can open from messages/tools and from **+**. Keep `chat_workbench` for plugin-opened views without a launcher entry.
+### ChatUI thinking level / ChatUI 思考程度
+
+- 模型选择器顶部新增按对话的思考程度（低 / 中 / 高），随发送、重新生成、WebSocket 和分支追问一起发送，按提供商类型映射到 OpenAI `reasoning_effort`、Responses `reasoning.effort`、Anthropic 自适应思考或思考预算、Gemini 思考等级或预算；只作用于主提供商，不改动提供商配置。新增 `ProviderRequest.reasoning_effort`，插件可读取或修改。
+- Add a per-conversation thinking level (low / medium / high) at the top of the ChatUI model selector. It is sent with messages, regenerations, WebSocket requests, and thread messages, and is mapped per provider type to OpenAI `reasoning_effort`, Responses `reasoning.effort`, Anthropic adaptive thinking or a thinking budget, and a Gemini thinking level or budget. It applies to the primary provider only and leaves provider configuration unchanged. `ProviderRequest.reasoning_effort` is new and available to plugins.
+- 聊天请求新增按对话选项 `reasoning_effort`（`POST /api/v1/chat`、重新生成、分支追问消息及 WebSocket `send`），非法值会被忽略。
+- Chat requests accept the per-conversation option `reasoning_effort` (`POST /api/v1/chat`, regenerate, thread messages, and WebSocket `send`); invalid values are ignored.
