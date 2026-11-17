@@ -53,7 +53,12 @@ function mountMenu(selection) {
 
 const PROVIDERS = [
   { id: "xai", model: "grok", type: "xai_chat_completion" },
-  { id: "openai", model: "gpt", type: "openai_chat_completion" },
+  {
+    id: "openai",
+    model: "gpt",
+    type: "openai_chat_completion",
+    supports_fast_mode: true,
+  },
   { id: "other", model: "x", type: "unknown_chat_completion" },
 ];
 
@@ -74,6 +79,7 @@ test("levels follow the provider type once its metadata matches the selection", 
     selectedProviderId: ref("xai"),
     selectedModelName: ref("grok"),
     reasoningEffort: ref("high"),
+    fastMode: ref(false),
     setSelection() {},
   };
   const { requests, h } = mountMenu(selection);
@@ -119,6 +125,44 @@ test("levels follow the provider type once its metadata matches the selection", 
       "types without a level send none",
     );
     assert.equal(levelButtons(h).length, 0);
+  } finally {
+    h.stop();
+  }
+});
+
+test("fast mode is offered only where the backend marks the provider", async () => {
+  const selection = {
+    selectedProviderId: ref("openai"),
+    selectedModelName: ref("gpt"),
+    reasoningEffort: ref("low"),
+    fastMode: ref(true),
+    setSelection() {},
+  };
+  const { requests, h } = mountMenu(selection);
+  const switches = () => h.findAll((n) => n.type === "input");
+  try {
+    await nextTick();
+    // Before the list arrives, a stored choice is kept.
+    assert.equal(switches().length, 0);
+    assert.equal(selection.fastMode.value, true);
+    await loaded(requests);
+    assert.equal(switches().length, 1);
+    assert.equal(selection.fastMode.value, true);
+
+    // Another model picked for the same entry was not judged by the backend.
+    selection.selectedModelName.value = "gpt-other";
+    await nextTick();
+    await nextTick();
+    assert.equal(switches().length, 0);
+    assert.equal(selection.fastMode.value, false, "unsupported turns it off");
+    selection.selectedModelName.value = "gpt";
+
+    selection.fastMode.value = true;
+    selection.selectedProviderId.value = "xai";
+    await nextTick();
+    await nextTick();
+    assert.equal(switches().length, 0);
+    assert.equal(selection.fastMode.value, false, "unsupported turns it off");
   } finally {
     h.stop();
   }

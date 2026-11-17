@@ -10,9 +10,13 @@
     @update:model-value="updateSelection"
     @select="saveSelection"
   >
-    <template v-if="reasoningEffort" #trigger-suffix>
-      <span class="effort-chip">
+    <template v-if="reasoningEffort || fastMode" #trigger-suffix>
+      <span v-if="reasoningEffort" class="effort-chip">
         {{ tm(`reasoningEffort.levels.${reasoningEffort}`) }}
+      </span>
+      <span v-if="fastMode" class="effort-chip fast-chip">
+        <v-icon size="12">mdi-lightning-bolt</v-icon>
+        {{ tm("fastMode.chip") }}
       </span>
     </template>
     <!-- Per-conversation thinking level; the backend maps it per provider type. -->
@@ -43,6 +47,20 @@
           {{ tm("reasoningEffort.unsupported") }}
         </div>
       </div>
+      <!-- Fast mode: only where the backend says the provider offers it. -->
+      <div v-if="fastSupported" class="fast-section">
+        <div class="fast-section-text">
+          <span class="effort-section-title">{{ tm("fastMode.title") }}</span>
+          <span class="effort-section-hint">{{ tm("fastMode.hint") }}</span>
+        </div>
+        <v-switch
+          v-model="fastMode"
+          color="primary"
+          density="compact"
+          hide-details
+          inset
+        />
+      </div>
       <v-divider class="effort-menu-divider" />
     </template>
   </ProviderSelectMenu>
@@ -68,8 +86,13 @@ const props = withDefaults(
   },
 );
 
-const { selectedProviderId, selectedModelName, setSelection, reasoningEffort } =
-  useProviderModelSelection();
+const {
+  selectedProviderId,
+  selectedModelName,
+  setSelection,
+  reasoningEffort,
+  fastMode,
+} = useProviderModelSelection();
 const { tm } = useModuleI18n("features/chat");
 const providerSelectMenuRef = ref<InstanceType<
   typeof ProviderSelectMenu
@@ -99,9 +122,23 @@ const EFFORT_LEVELS_BY_TYPE: Record<string, string[]> = {
 const selectedProvider = computed(
   () =>
     providerSelectMenuRef.value?.selectedProvider as
-      | { id?: string; type?: string }
+      | {
+          id?: string;
+          type?: string;
+          model?: string;
+          supports_fast_mode?: boolean;
+        }
       | undefined,
 );
+// The backend judges fast mode for the entry's configured model; another
+// model picked in ChatUI is not offered it rather than silently ignored.
+const fastSupported = computed(() => {
+  const provider = selectedProvider.value;
+  return (
+    provider?.supports_fast_mode === true &&
+    (!selectedModelName.value || selectedModelName.value === provider.model)
+  );
+});
 // "Default model" has no known type here; offer the common levels.
 const effortLevels = computed(() => {
   const type = selectedProvider.value?.type;
@@ -111,7 +148,13 @@ const effortLevels = computed(() => {
 // unless chosen), so the menu always shows the current choice. Wait until the
 // provider list matches the selection, or a stale type would reset the level.
 watch(
-  [effortLevels, reasoningEffort, selectedProviderId, selectedProvider],
+  [
+    effortLevels,
+    reasoningEffort,
+    selectedProviderId,
+    selectedProvider,
+    fastSupported,
+  ],
   ([levels, effort]) => {
     if (
       selectedProviderId.value &&
@@ -124,6 +167,7 @@ watch(
     } else if (!levels.includes(effort)) {
       reasoningEffort.value = levels.includes("low") ? "low" : levels[0];
     }
+    if (!fastSupported.value && fastMode.value) fastMode.value = false;
   },
   { immediate: true },
 );
@@ -161,6 +205,25 @@ defineExpose({ getCurrentSelection });
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
+}
+
+.fast-chip {
+  gap: 2px;
+}
+
+.fast-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 4px 2px;
+}
+
+.fast-section-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .effort-section {

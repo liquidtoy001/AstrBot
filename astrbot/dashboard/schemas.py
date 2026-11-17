@@ -160,6 +160,7 @@ class ChatOptions(OpenModel):
     permission_mode: Literal["workspace", "workspace_no_ask", "ask", "full"] | None = (
         None
     )
+    fast_mode: bool | None = None
 
 
 class ChatPermissionModeRequest(OpenModel):

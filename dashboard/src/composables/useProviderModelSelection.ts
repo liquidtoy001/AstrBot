@@ -12,6 +12,9 @@ let syncedUser = "";
 // with the conversation's options (utils/chatSessionPrefs.mjs); the model
 // menu edits it. "" for provider types without a per-request level.
 const reasoningEffort = ref("");
+// Fast mode of the active conversation, stored the same way. The model menu
+// offers it only for providers the backend marks with supports_fast_mode.
+const fastMode = ref(false);
 
 function syncFromStorage() {
   const user = getStoredDashboardUsername();
@@ -46,5 +49,6 @@ export function useProviderModelSelection() {
     setSelection,
     resetSelection,
     reasoningEffort,
+    fastMode,
   };
 }

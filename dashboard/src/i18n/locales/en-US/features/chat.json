@@ -386,5 +386,10 @@
       "title": "Details",
       "description": "Token usage and timing of this reply."
     }
+  },
+  "fastMode": {
+    "title": "Fast mode",
+    "hint": "Faster output at a higher price; this conversation only",
+    "chip": "Fast"
   }
 }

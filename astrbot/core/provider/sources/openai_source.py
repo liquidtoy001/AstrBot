@@ -44,6 +44,11 @@ from ..headers import build_conversation_headers
 from ..register import register_provider_adapter
 from .request_retry import retry_provider_request
 
+# APIs that offer priority processing on the same model per request
+# (``service_tier: "priority"``). Compatible gateways may ignore or reject the
+# field, so it is only sent to these hosts.
+FAST_TIER_HOSTS = ("api.openai.com", "api.x.ai", "openrouter.ai")
+
 
 @register_provider_adapter(
     "openai_chat_completion",
@@ -1215,6 +1220,7 @@ class ProviderOpenAIOfficial(Provider):
     ) -> LLMResponse:
         conversation_id = kwargs.pop("conversation_id", None)
         reasoning_effort = kwargs.pop("reasoning_effort", None)
+        fast_mode = kwargs.pop("fast_mode", False)
         payloads, context_query = await self._prepare_chat_payload(
             prompt,
             image_urls,
@@ -1228,6 +1234,9 @@ class ProviderOpenAIOfficial(Provider):
         )
         if func_tool and not func_tool.empty():
             payloads["tool_choice"] = tool_choice
+        if fast_mode and self.supports_fast_mode(model):
+            # ChatUI fast mode: priority processing, billed higher.
+            payloads["service_tier"] = "priority"
 
         llm_response = None
         max_retries = 10
@@ -1301,6 +1310,7 @@ class ProviderOpenAIOfficial(Provider):
         """流式对话，与服务商交互并逐步返回结果"""
         conversation_id = kwargs.pop("conversation_id", None)
         reasoning_effort = kwargs.pop("reasoning_effort", None)
+        fast_mode = kwargs.pop("fast_mode", False)
         payloads, context_query = await self._prepare_chat_payload(
             prompt,
             image_urls,
@@ -1313,6 +1323,9 @@ class ProviderOpenAIOfficial(Provider):
         )
         if func_tool and not func_tool.empty():
             payloads["tool_choice"] = tool_choice
+        if fast_mode and self.supports_fast_mode(model):
+            # ChatUI fast mode: priority processing, billed higher.
+            payloads["service_tier"] = "priority"
 
         max_retries = 10
         available_api_keys = self.api_keys.copy()
@@ -1388,6 +1401,9 @@ class ProviderOpenAIOfficial(Provider):
 
     def get_current_key(self) -> str:
         return self.client.api_key
+
+    def supports_fast_mode(self, model: str | None = None) -> bool:
+        return self.client.base_url.host in FAST_TIER_HOSTS
 
     def get_keys(self) -> list[str]:
         return self.api_keys

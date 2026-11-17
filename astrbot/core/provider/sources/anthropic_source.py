@@ -32,6 +32,10 @@ from ..headers import build_conversation_headers, build_provider_headers
 from ..register import register_provider_adapter
 from .request_retry import retry_provider_request, retry_provider_request_context
 
+# Claude models with generally available fast mode (``speed: "fast"``, no beta
+# header) on the official API: Opus 5.5 and Fable / Mythos 5.2.
+FAST_MODE_MODEL_RE = re.compile(r"claude-(opus-5-5|fable-5-2|mythos-5-2)(?![-.]?\d)")
+
 
 @register_provider_adapter(
     "anthropic_chat_completion",
@@ -893,6 +897,7 @@ class ProviderAnthropic(Provider):
     ) -> LLMResponse:
         conversation_id = kwargs.pop("conversation_id", None)
         reasoning_effort = kwargs.pop("reasoning_effort", None)
+        fast_mode = kwargs.pop("fast_mode", False)
         if contexts is None:
             contexts = []
         new_record = None
@@ -927,6 +932,9 @@ class ProviderAnthropic(Provider):
         model = model or self.get_model()
 
         payloads = {"messages": new_messages, "model": model}
+        if fast_mode and self.supports_fast_mode(model):
+            # ChatUI fast mode: faster output at premium pricing.
+            payloads["speed"] = "fast"
         if func_tool and not func_tool.empty():
             payloads["tool_choice"] = tool_choice
 
@@ -974,6 +982,7 @@ class ProviderAnthropic(Provider):
     ):
         conversation_id = kwargs.pop("conversation_id", None)
         reasoning_effort = kwargs.pop("reasoning_effort", None)
+        fast_mode = kwargs.pop("fast_mode", False)
         if contexts is None:
             contexts = []
         new_record = None
@@ -1007,6 +1016,9 @@ class ProviderAnthropic(Provider):
         model = model or self.get_model()
 
         payloads = {"messages": new_messages, "model": model}
+        if fast_mode and self.supports_fast_mode(model):
+            # ChatUI fast mode: faster output at premium pricing.
+            payloads["speed"] = "fast"
         if func_tool and not func_tool.empty():
             payloads["tool_choice"] = tool_choice
 
@@ -1137,6 +1149,11 @@ class ProviderAnthropic(Provider):
 
     def get_current_key(self) -> str:
         return self.chosen_api_key
+
+    def supports_fast_mode(self, model: str | None = None) -> bool:
+        return self.client.base_url.host == "api.anthropic.com" and bool(
+            FAST_MODE_MODEL_RE.search(model or self.get_model())
+        )
 
     async def get_models(self) -> list[str]:
         models_str = []

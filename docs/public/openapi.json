@@ -1284,6 +1284,7 @@
           "Providers"
         ],
         "summary": "List providers by capability or source",
+        "description": "Chat providers that offer ChatUI fast mode for their configured model carry `supports_fast_mode: true`.\n\n**Required scope:** `provider`",
         "operationId": "listProviders",
         "x-astrbot-scope": "provider",
         "parameters": [
@@ -1313,8 +1314,7 @@
           "200": {
             "$ref": "#/components/responses/Ok"
           }
-        },
-        "description": "**Required scope:** `provider`"
+        }
       },
       "post": {
         "tags": [
@@ -7851,6 +7851,9 @@
           "permission_mode": {
             "$ref": "#/components/schemas/ChatPermissionMode"
           },
+          "fast_mode": {
+            "$ref": "#/components/schemas/ChatFastMode"
+          },
           "enable_streaming": {
             "type": "boolean",
             "default": true,
@@ -7947,6 +7950,10 @@
         ],
         "description": "ChatUI per-conversation thinking level for this request. Mapped to each provider's own setting; omit to use the provider configuration."
       },
+      "ChatFastMode": {
+        "type": "boolean",
+        "description": "ChatUI per-conversation fast mode for this request (faster output at a higher price). Applied only when the selected provider supports it (see `supports_fast_mode` in the provider list); otherwise ignored."
+      },
       "ChatMessageRegenerateRequest": {
         "type": "object",
         "properties": {
@@ -7965,6 +7972,9 @@
           },
           "permission_mode": {
             "$ref": "#/components/schemas/ChatPermissionMode"
+          },
+          "fast_mode": {
+            "$ref": "#/components/schemas/ChatFastMode"
           },
           "enable_streaming": {
             "type": "boolean",
@@ -8039,6 +8049,9 @@
           },
           "permission_mode": {
             "$ref": "#/components/schemas/ChatPermissionMode"
+          },
+          "fast_mode": {
+            "$ref": "#/components/schemas/ChatFastMode"
           },
           "enable_streaming": {
             "type": "boolean",

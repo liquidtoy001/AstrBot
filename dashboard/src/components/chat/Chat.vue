@@ -1169,6 +1169,7 @@ const {
   selectedModelName: currentModelName,
   setSelection: setProviderSelection,
   reasoningEffort,
+  fastMode,
 } = useProviderModelSelection();
 
 // Per-conversation thinking level, saved and loaded like the permission mode
@@ -1215,10 +1216,14 @@ watch(
   // change can switch it.
   { flush: "sync" },
 );
+watch(fastMode, (enabled) => {
+  writeChatSessionPref(currSessionId.value, "fast_mode", enabled);
+});
 watch(currSessionId, (sessionId) => {
   if (sessionId) return;
   reasoningEffort.value = "";
   permissionMode.value = "ask";
+  fastMode.value = false;
 });
 
 const SESSION_PROVIDER_STORAGE_PREFIX = "chat.sessionProvider.";
@@ -1728,6 +1733,7 @@ async function selectSession(sessionId: string, pushRoute = true) {
   )
     ? (prefs.permission_mode as ChatPermissionMode)
     : "ask";
+  fastMode.value = prefs.fast_mode === true;
   const storedSelection = readSessionProviderSelection(sessionId);
   setProviderSelection(
     storedSelection?.providerId || "",
@@ -1794,6 +1800,7 @@ async function sendCurrentMessage(viewText?: string) {
       "permission_mode",
       permissionMode.value === "ask" ? "" : permissionMode.value,
     );
+    writeChatSessionPref(sessionId, "fast_mode", fastMode.value);
     const { userRecord, botRecord } = createLocalExchange({
       sessionId,
       messageId,
