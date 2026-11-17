@@ -8,7 +8,13 @@
     @update:model-value="handleMenuToggle"
   >
     <template #activator="{ props: menuProps }">
-      <span :title="unavailableReason || tm('actions.retry')">
+      <span>
+        <ActionTooltip
+          :title="tm('messageActions.retry.title')"
+          :description="
+            unavailableReason || tm('messageActions.retry.description')
+          "
+        />
         <v-btn
           v-bind="menuProps"
           icon
@@ -150,6 +156,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import ActionTooltip from "@/components/chat/message_list_comps/ActionTooltip.vue";
 import { RotateCw } from "@lucide/vue";
 import { providerApi } from "@/api/v1";
 import StyledMenu from "@/components/shared/StyledMenu.vue";
