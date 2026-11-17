@@ -49,6 +49,29 @@ def test_adapter_puts_options_on_the_event():
         _conversation_modes.clear()
 
 
+@pytest.mark.asyncio
+async def test_adapter_puts_options_on_the_event_and_the_request():
+    assert _event({"reasoning_effort": "xhigh"}).get_extra("reasoning_effort") is None
+    event = _event({"reasoning_effort": "medium"})
+    assert event.get_extra("reasoning_effort") == "medium"
+    req, _ = await collect_initial_request(
+        event,
+        SimpleNamespace(),
+        SimpleNamespace(provider_wake_prefix="", provider_settings={}),
+    )
+    assert req.reasoning_effort == "medium"
+    assert req.fast_mode is False
+
+    # Fast mode reaches the request only for a strict true.
+    for value, expected in ((True, True), ("true", False), (1, False)):
+        req, _ = await collect_initial_request(
+            _event({"fast_mode": value}),
+            SimpleNamespace(),
+            SimpleNamespace(provider_wake_prefix="", provider_settings={}),
+        )
+        assert req.fast_mode is expected
+
+
 def test_request_models_reject_unknown_options():
     with pytest.raises(ValidationError):
         ChatThreadMessageRequest(message="hi", permission_mode="root")
@@ -70,7 +93,7 @@ def test_openapi_contract_accepts_the_options(schema_name):
             "components": spec["components"],
         }
     )
-    payload = {"permission_mode": "workspace"}
+    payload = {"permission_mode": "workspace", "fast_mode": True}
     if schema_name != "ChatMessageRegenerateRequest":
         payload["message"] = "hello"
     validator.validate(payload)
@@ -78,6 +101,7 @@ def test_openapi_contract_accepts_the_options(schema_name):
     validator.validate({**payload, "reasoning_effort": "high"})
     assert list(validator.iter_errors({**payload, "reasoning_effort": "xhigh"}))
     assert list(validator.iter_errors({**payload, "permission_mode": "root"}))
+    assert list(validator.iter_errors({**payload, "fast_mode": "yes"}))
 
 
 @pytest.mark.asyncio
@@ -90,7 +114,7 @@ async def test_thread_forwards_chat_options():
             )
         )
     )
-    options = {"permission_mode": "workspace"}
+    options = {"permission_mode": "workspace", "fast_mode": True}
     result = await service.prepare_thread_chat_payload(
         "alice", {"thread_id": "t1", "message": [], **options}
     )
@@ -164,7 +188,7 @@ async def test_regenerate_forwards_chat_options():
             ),
         ),
     )
-    options = {"permission_mode": "workspace"}
+    options = {"permission_mode": "workspace", "fast_mode": True}
     payload = await service.prepare_regenerate_message_payload(
         "alice", {"session_id": "s1", "message_id": 2, **options}
     )

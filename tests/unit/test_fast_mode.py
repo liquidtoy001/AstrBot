@@ -26,22 +26,23 @@ def test_fast_mode_option_accepts_only_true(value, expected):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("stream", [False, True])
 @pytest.mark.parametrize(
-    ("api_base", "fast", "tier"),
+    ("api_base", "fast", "stream", "supported", "tier"),
     [
-        ("https://api.openai.com/v1", True, "priority"),
-        ("https://api.openai.com/v1", False, None),
-        ("https://api.x.ai/v1", True, "priority"),
-        ("https://openrouter.ai/api/v1", True, "priority"),
-        ("https://api.openai.com.example/v1", True, None),
-        ("https://proxy.example/api.openai.com", True, None),
-        ("https://api.openai.com@proxy.example/v1", True, None),
-        ("https://proxy.example.com/v1", True, None),  # gateways may reject it
+        ("https://api.openai.com/v1", True, False, True, "priority"),
+        ("https://api.openai.com/v1", True, True, True, "priority"),
+        ("https://api.openai.com/v1", False, False, True, None),
+        ("https://api.x.ai/v1", True, False, True, "priority"),
+        ("https://openrouter.ai/api/v1", True, False, True, "priority"),
+        ("https://api.openai.com.example/v1", True, False, False, None),
+        ("https://proxy.example/api.openai.com", True, False, False, None),
+        ("https://api.openai.com@proxy.example/v1", True, False, False, None),
+        # Gateways may reject the field.
+        ("https://proxy.example.com/v1", True, True, False, None),
     ],
 )
 async def test_chat_completions_fast_mode_uses_priority_tier_on_official_hosts(
-    monkeypatch, stream, api_base, fast, tier
+    monkeypatch, api_base, fast, stream, supported, tier
 ):
     provider = ProviderOpenAIOfficial({**CHAT_CONFIG, "api_base": api_base}, {})
     captured: dict = {}
@@ -55,7 +56,7 @@ async def test_chat_completions_fast_mode_uses_priority_tier_on_official_hosts(
 
     monkeypatch.setattr(provider.client.chat.completions, "create", create)
     try:
-        assert provider.supports_fast_mode() is (tier is not None or not fast)
+        assert provider.supports_fast_mode() is supported
         if stream:
             async for _ in provider.text_chat_stream(prompt="hi", fast_mode=fast):
                 pass
@@ -69,21 +70,27 @@ async def test_chat_completions_fast_mode_uses_priority_tier_on_official_hosts(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("stream", [False, True])
 @pytest.mark.parametrize(
-    ("model", "api_base", "speed"),
+    ("model", "api_base", "stream", "supported", "speed"),
     [
-        ("claude-opus-5-5", "https://api.anthropic.com", "fast"),
-        ("claude-fable-5-2", "https://api.anthropic.com", "fast"),
+        ("claude-opus-5-5", "https://api.anthropic.com", False, True, "fast"),
+        ("claude-opus-5-5", "https://api.anthropic.com", True, True, "fast"),
+        ("claude-fable-5-2", "https://api.anthropic.com", False, True, "fast"),
         # No fast mode on these models: the API would reject the field.
-        ("claude-sonnet-5-5", "https://api.anthropic.com", None),
-        ("claude-opus-5-50", "https://api.anthropic.com", None),
-        ("claude-opus-5-5", "https://api.anthropic.com.example/v1", None),
-        ("claude-opus-5-5", "https://proxy.example/api.anthropic.com", None),
+        ("claude-sonnet-5-5", "https://api.anthropic.com", False, False, None),
+        ("claude-opus-5-50", "https://api.anthropic.com", False, False, None),
+        ("claude-opus-5-5", "https://api.anthropic.com.example/v1", False, False, None),
+        (
+            "claude-opus-5-5",
+            "https://proxy.example/api.anthropic.com",
+            True,
+            False,
+            None,
+        ),
     ],
 )
 async def test_anthropic_fast_mode_only_for_offered_models_on_the_official_api(
-    stream, model, api_base, speed
+    model, api_base, stream, supported, speed
 ):
     provider = ProviderAnthropic(
         {
@@ -108,7 +115,7 @@ async def test_anthropic_fast_mode_only_for_offered_models_on_the_official_api(
     provider._query = query
     provider._query_stream = query_stream
     try:
-        assert provider.supports_fast_mode() is (speed is not None)
+        assert provider.supports_fast_mode() is supported
         if stream:
             async for _ in provider.text_chat_stream(prompt="hi", fast_mode=True):
                 pass
@@ -150,9 +157,39 @@ async def test_runner_sends_fast_mode_only_to_a_supporting_primary_provider(
     assert received.get("fast_mode") is expected
 
 
+def test_other_provider_types_report_their_own_support():
+    from astrbot.core.provider.sources.gemini_source import ProviderGoogleGenAI
+    from astrbot.core.provider.sources.openai_responses_source import (
+        ProviderOpenAIResponses,
+    )
+
+    # Gemini has no fast mode, so the runner never sends it the field.
+    gemini = object.__new__(ProviderGoogleGenAI)
+    assert gemini.supports_fast_mode("gemini-3-pro") is False
+    # Responses uses the same official hosts as Chat Completions.
+    for api_base, supported in (
+        ("https://api.openai.com/v1", True),
+        ("https://proxy.example/v1", False),
+    ):
+        responses = ProviderOpenAIResponses(
+            {**CHAT_CONFIG, "type": "openai_responses", "api_base": api_base}, {}
+        )
+        assert responses.supports_fast_mode() is supported
+
+
 def test_provider_list_marks_providers_that_support_fast_mode():
     from astrbot.dashboard.services.config_service import ProviderConfigService
 
+    # The flag is judged for each entry's model, not the instance's default.
+    anthropic = ProviderAnthropic(
+        {
+            "id": "sonnet",
+            "type": "anthropic_chat_completion",
+            "model": "claude-sonnet-5-5",
+            "key": ["test-key"],
+        },
+        {},
+    )
     openai = ProviderOpenAIOfficial(CHAT_CONFIG, {})
     proxy = ProviderOpenAIOfficial(
         {**CHAT_CONFIG, "id": "proxy", "api_base": "https://proxy.example/v1"}, {}
@@ -168,11 +205,30 @@ def test_provider_list_marks_providers_that_support_fast_mode():
                 "provider_type": "chat_completion",
                 "enable": True,
             },
+            {
+                "id": "opus",
+                "model": "claude-opus-5-5",
+                "provider_type": "chat_completion",
+                "enable": True,
+            },
+            {
+                "id": "sonnet",
+                "model": "claude-sonnet-5-5",
+                "provider_type": "chat_completion",
+                "enable": True,
+            },
         ],
-        inst_map={"test-openai": openai, "proxy": proxy},
+        inst_map={
+            "test-openai": openai,
+            "proxy": proxy,
+            "opus": anthropic,
+            "sonnet": anthropic,
+        },
     )
     providers = service.list_providers(capability="chat_completion")["providers"]
     assert {p["id"]: p.get("supports_fast_mode") for p in providers} == {
         "test-openai": True,
         "proxy": None,
+        "opus": True,
+        "sonnet": None,
     }
