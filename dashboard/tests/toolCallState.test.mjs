@@ -10,7 +10,11 @@ function loadToolCallCard(timers) {
       "../src/components/chat/message_list_comps/ToolCallCard.vue",
       import.meta.url,
     ),
-    { "@/i18n/composables": { useModuleI18n: () => ({ tm: (key) => key }) } },
+    {
+      "@/i18n/composables": { useModuleI18n: () => ({ tm: (key) => key }) },
+      // The file change undo button is not used by these cards.
+      "@/api/v1": { chatApi: {} },
+    },
     {
       setInterval: (fn) => {
         timers.add(fn);
