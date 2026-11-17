@@ -107,6 +107,7 @@ export type ChatMessageRegenerateRequest = {
     locale?: string;
     selected_provider?: string;
     selected_model?: string;
+    reasoning_effort?: ChatReasoningEffort;
     permission_mode?: ChatPermissionMode;
     /**
      * Deprecated compatibility field. It is used only when flags.enable_streaming is absent; otherwise flags.enable_streaming takes priority.
@@ -144,6 +145,11 @@ export type ChatProjectRequest = {
  */
 export type workspace_type = 'session' | 'project' | 'custom';
 
+/**
+ * ChatUI per-conversation thinking level for this request. Mapped to each provider's own setting; omit to use the provider configuration.
+ */
+export type ChatReasoningEffort = 'low' | 'medium' | 'high';
+
 export type ChatRequest = {
     /**
      * UI locale for built-in LLM error messages. Omitted or unsupported locales fall back to zh-CN.
@@ -163,6 +169,7 @@ export type ChatRequest = {
     config_name?: string;
     selected_provider?: string;
     selected_model?: string;
+    reasoning_effort?: ChatReasoningEffort;
     permission_mode?: ChatPermissionMode;
     /**
      * Deprecated compatibility field. It is used only when flags.enable_streaming is absent; otherwise flags.enable_streaming takes priority.
@@ -210,6 +217,7 @@ export type ChatThreadMessageRequest = {
     message: (string | Array<MessagePart>);
     selected_provider?: string;
     selected_model?: string;
+    reasoning_effort?: ChatReasoningEffort;
     permission_mode?: ChatPermissionMode;
     /**
      * Deprecated compatibility field. It is used only when flags.enable_streaming is absent; otherwise flags.enable_streaming takes priority.

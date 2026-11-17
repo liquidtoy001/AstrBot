@@ -762,6 +762,10 @@ class ToolLoopAgentRunner(BaseAgentRunner[TContext]):
         if include_model:
             # For primary provider we keep explicit model selection if provided.
             payload["model"] = self.req.model
+            # Per-request effort only targets the primary (user-selected)
+            # provider; fallbacks may be a different provider type.
+            if getattr(self.req, "reasoning_effort", None):
+                payload["reasoning_effort"] = self.req.reasoning_effort
         async for response in self._recorded_responses(
             payload, contexts=self.run_context.messages, streaming=self.streaming
         ):

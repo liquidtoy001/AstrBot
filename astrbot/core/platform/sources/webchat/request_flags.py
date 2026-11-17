@@ -2,6 +2,7 @@ from collections.abc import Callable
 from typing import Any
 
 from astrbot.core.astr_agent_runtime.permission_mode import PERMISSION_MODES
+from astrbot.core.provider.entities import REASONING_EFFORTS
 
 WEBCHAT_REQUEST_FLAG_DEFAULTS = {
     "enable_inline_genui": True,
@@ -16,6 +17,8 @@ WEBCHAT_REQUEST_FLAG_DEFAULTS = {
 # To add an option, add its validator here and its field to ``ChatOptions`` in
 # ``astrbot/dashboard/schemas.py`` (and the OpenAPI spec).
 WEBCHAT_CHAT_OPTIONS: dict[str, Callable[[Any], bool]] = {
+    # Thinking level, mapped to each provider's own setting.
+    "reasoning_effort": lambda value: value in REASONING_EFFORTS,
     # Permission mode; see astrbot/core/astr_agent_runtime/permission_mode.py.
     "permission_mode": lambda value: value in PERMISSION_MODES,
 }

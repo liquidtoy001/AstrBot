@@ -536,6 +536,7 @@ class ProviderOpenAIOfficial(Provider):
         *,
         request_max_retries: int | None = None,
         conversation_id: str | None = None,
+        reasoning_effort: str | None = None,
     ) -> LLMResponse:
         if tools:
             model = payloads.get("model", "").lower()
@@ -561,6 +562,9 @@ class ProviderOpenAIOfficial(Provider):
         custom_extra_body = self.provider_config.get("custom_extra_body", {})
         if isinstance(custom_extra_body, dict):
             extra_body.update(custom_extra_body)
+        if reasoning_effort:
+            # Per-request override (e.g. ChatUI thinking level) wins over config.
+            extra_body["reasoning_effort"] = reasoning_effort
         self._apply_provider_specific_request_overrides(payloads, extra_body)
 
         model = payloads.get("model", "").lower()
@@ -596,6 +600,7 @@ class ProviderOpenAIOfficial(Provider):
         *,
         request_max_retries: int | None = None,
         conversation_id: str | None = None,
+        reasoning_effort: str | None = None,
     ) -> AsyncGenerator[LLMResponse, None]:
         """流式查询API，逐步返回结果"""
         if tools:
@@ -623,6 +628,9 @@ class ProviderOpenAIOfficial(Provider):
                 to_del.append(key)
         for key in to_del:
             del payloads[key]
+        if reasoning_effort:
+            # Per-request override (e.g. ChatUI thinking level) wins over config.
+            extra_body["reasoning_effort"] = reasoning_effort
         self._apply_provider_specific_request_overrides(payloads, extra_body)
 
         self._sanitize_assistant_messages(payloads)
@@ -1206,6 +1214,7 @@ class ProviderOpenAIOfficial(Provider):
         **kwargs,
     ) -> LLMResponse:
         conversation_id = kwargs.pop("conversation_id", None)
+        reasoning_effort = kwargs.pop("reasoning_effort", None)
         payloads, context_query = await self._prepare_chat_payload(
             prompt,
             image_urls,
@@ -1234,6 +1243,8 @@ class ProviderOpenAIOfficial(Provider):
                 query_kwargs = {}
                 if conversation_id:
                     query_kwargs["conversation_id"] = conversation_id
+                if reasoning_effort:
+                    query_kwargs["reasoning_effort"] = reasoning_effort
                 llm_response = await self._query(
                     payloads,
                     func_tool,
@@ -1289,6 +1300,7 @@ class ProviderOpenAIOfficial(Provider):
     ) -> AsyncGenerator[LLMResponse, None]:
         """流式对话，与服务商交互并逐步返回结果"""
         conversation_id = kwargs.pop("conversation_id", None)
+        reasoning_effort = kwargs.pop("reasoning_effort", None)
         payloads, context_query = await self._prepare_chat_payload(
             prompt,
             image_urls,
@@ -1315,6 +1327,8 @@ class ProviderOpenAIOfficial(Provider):
                 query_kwargs = {}
                 if conversation_id:
                     query_kwargs["conversation_id"] = conversation_id
+                if reasoning_effort:
+                    query_kwargs["reasoning_effort"] = reasoning_effort
                 async for response in self._query_stream(
                     payloads,
                     func_tool,

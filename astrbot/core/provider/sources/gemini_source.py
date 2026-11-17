@@ -218,6 +218,7 @@ class ProviderGoogleGenAI(Provider):
         tool_choice: Literal["auto", "required"] = "auto",
         system_instruction: str | None = None,
         modalities: list[str] | None = None,
+        reasoning_effort: str | None = None,
     ) -> types.GenerateContentConfig:
         """Build the shared generation config for regular and streaming requests.
 
@@ -227,6 +228,8 @@ class ProviderGoogleGenAI(Provider):
             tool_choice: Whether function calling is automatic or required.
             system_instruction: System prompt for the request.
             modalities: Requested response modalities.
+            reasoning_effort: Optional per-request level (low/medium/high) that
+                overrides the configured thinking budget or level.
 
         Returns:
             SDK config with explicit generation parameters and adapter settings.
@@ -311,6 +314,14 @@ class ProviderGoogleGenAI(Provider):
         ]:
             # The thinkingBudget parameter, introduced with the Gemini 2.5 series
             thinking_budget = thinking_settings.get("budget")
+            if reasoning_effort:
+                # Per-request generic level (e.g. ChatUI) mapped to a budget.
+                # Gemini 2.5 accepts up to 24576 thinking tokens (Flash's
+                # maximum), so its levels are wider than Anthropic's. Unknown
+                # values (a plugin may set any) get the high budget.
+                thinking_budget = {"low": 1024, "medium": 8192}.get(
+                    reasoning_effort, 24576
+                )
             if thinking_budget is not None:
                 thinking_config = types.ThinkingConfig(
                     thinking_budget=thinking_budget,
@@ -318,7 +329,9 @@ class ProviderGoogleGenAI(Provider):
         # TODO: Drop legacy models support.
         # We have too much fragile legacy workaround here.
         elif is_gemini_4 or model_name.startswith(("gemini-3-", "gemini-3.")):
-            thinking_level = (
+            # A per-request level (e.g. ChatUI) wins over the configuration;
+            # the checks below map it to what the model accepts.
+            thinking_level = reasoning_effort or (
                 extra_body.get("reasoning_effort")
                 if is_gemini_4
                 else thinking_settings.get("level")
@@ -727,6 +740,7 @@ class ProviderGoogleGenAI(Provider):
         *,
         request_max_retries: int | None = None,
         conversation_id: str | None = None,
+        reasoning_effort: str | None = None,
     ) -> LLMResponse:
         """非流式请求 Gemini API"""
         system_instruction = next(
@@ -752,6 +766,7 @@ class ProviderGoogleGenAI(Provider):
                     payloads.get("tool_choice", "auto"),
                     system_instruction,
                     modalities,
+                    reasoning_effort,
                 )
                 async with self._conversation_header(conversation_id):
                     result = await retry_provider_request(
@@ -830,6 +845,7 @@ class ProviderGoogleGenAI(Provider):
         *,
         request_max_retries: int | None = None,
         conversation_id: str | None = None,
+        reasoning_effort: str | None = None,
     ) -> AsyncGenerator[LLMResponse, None]:
         """流式请求 Gemini API"""
         system_instruction = next(
@@ -847,6 +863,7 @@ class ProviderGoogleGenAI(Provider):
                     tools,
                     payloads.get("tool_choice", "auto"),
                     system_instruction,
+                    reasoning_effort=reasoning_effort,
                 )
                 async with self._conversation_header(conversation_id):
                     result = await retry_provider_request(
@@ -997,6 +1014,7 @@ class ProviderGoogleGenAI(Provider):
         **kwargs,
     ) -> LLMResponse:
         conversation_id = kwargs.pop("conversation_id", None)
+        reasoning_effort = kwargs.pop("reasoning_effort", None)
         if contexts is None:
             contexts = []
         new_record = None
@@ -1039,6 +1057,8 @@ class ProviderGoogleGenAI(Provider):
                 query_kwargs = {}
                 if conversation_id:
                     query_kwargs["conversation_id"] = conversation_id
+                if reasoning_effort:
+                    query_kwargs["reasoning_effort"] = reasoning_effort
                 return await self._query(
                     payloads,
                     func_tool,
@@ -1069,6 +1089,7 @@ class ProviderGoogleGenAI(Provider):
         **kwargs,
     ) -> AsyncGenerator[LLMResponse, None]:
         conversation_id = kwargs.pop("conversation_id", None)
+        reasoning_effort = kwargs.pop("reasoning_effort", None)
         if contexts is None:
             contexts = []
         new_record = None
@@ -1111,6 +1132,8 @@ class ProviderGoogleGenAI(Provider):
                 query_kwargs = {}
                 if conversation_id:
                     query_kwargs["conversation_id"] = conversation_id
+                if reasoning_effort:
+                    query_kwargs["reasoning_effort"] = reasoning_effort
                 async for response in self._query_stream(
                     payloads,
                     func_tool,
