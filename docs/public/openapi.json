@@ -2009,6 +2009,35 @@
         "description": "**Required scope:** `chat`"
       }
     },
+    "/api/v1/chat/file-changes/{change_id}/undo": {
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Undo one agent file write or edit",
+        "operationId": "undoChatFileChange",
+        "x-astrbot-scope": "chat",
+        "description": "Restores the file recorded for a ChatUI file write/edit tool call to its\nprevious content. Refused (409) when the record is unknown or already used,\nor when the file no longer matches the content written by that call.\n\n**Required scope:** `chat`",
+        "parameters": [
+          {
+            "name": "change_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          },
+          "409": {
+            "description": "Undo refused"
+          }
+        }
+      }
+    },
     "/api/v1/chat/runs/{run_id}/stream": {
       "get": {
         "tags": [

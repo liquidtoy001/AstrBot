@@ -1612,6 +1612,16 @@ export type StopChatSessionResponse = (SuccessEnvelope);
 
 export type StopChatSessionError = unknown;
 
+export type UndoChatFileChangeData = {
+    path: {
+        change_id: string;
+    };
+};
+
+export type UndoChatFileChangeResponse = (SuccessEnvelope);
+
+export type UndoChatFileChangeError = (unknown);
+
 export type ResumeChatRunData = {
     path: {
         run_id: string;

@@ -17,6 +17,9 @@ from astrbot.core.astr_agent_runtime.permission_mode import (
     conversation_key,
     set_conversation_permission_mode,
 )
+from astrbot.core.astr_agent_runtime.tools.computer_tools.file_undo import (
+    clear_conversation_changes,
+)
 from astrbot.core.core_lifecycle import AstrBotCoreLifecycle
 from astrbot.core.db import BaseDatabase
 from astrbot.core.db.conversation import ContextUnavailableError
@@ -316,6 +319,8 @@ class BotMessageAccumulator:
             tool_call = {"id": tool_call_id}
             self.parts.append({"type": "tool_call", "tool_calls": [tool_call]})
         tool_call["result"] = tool_result.get("result")
+        if tool_result.get("file_change"):
+            tool_call["file_change"] = tool_result["file_change"]
         tool_call["finished_ts"] = tool_result.get("ts")
 
     @staticmethod
@@ -924,6 +929,9 @@ class ChatService:
                 offset_sec=99999999,
             )
             webchat_queue_mgr.remove_queues(thread_id)
+            await asyncio.to_thread(
+                clear_conversation_changes, creator, f"webchat!{creator}!{thread_id}"
+            )
             self.running_convs.pop(thread_id, None)
             set_conversation_permission_mode(conversation_key(creator, thread_id), None)
 
@@ -1576,6 +1584,10 @@ class ChatService:
             webchat_queue_mgr.remove_queues(session_id)
             set_conversation_permission_mode(
                 conversation_key(username, session_id), None
+            )
+            # Undo snapshots of a deleted conversation can no longer be used.
+            await asyncio.to_thread(
+                clear_conversation_changes, username, f"webchat!{username}!{session_id}"
             )
 
         await self.db.delete_platform_session(session_id)
