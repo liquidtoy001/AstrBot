@@ -237,7 +237,7 @@ test("a thread sends the options of the conversation it belongs to", async () =>
 });
 
 for (const action of ["newChat", "deleteSession"]) {
-  test(`${action} resets the permission mode to its default`, async () => {
+  test(`${action} resets the thinking level and permission mode to their defaults`, async () => {
     const storage = memoryStorage();
     const sessions = loadSource(
       new URL("../src/composables/useSessions.ts", import.meta.url),
@@ -263,6 +263,7 @@ for (const action of ["newChat", "deleteSession"]) {
       },
       { localStorage: storage },
     ).useSessions();
+    const reasoningEffort = ref("high");
     const permissionMode = ref("full");
     sessions.currSessionId.value = "old";
     const scope = effectScope();
@@ -272,12 +273,18 @@ for (const action of ["newChat", "deleteSession"]) {
           ts.isExpressionStatement(node) &&
           text.startsWith("watch(currSessionId,") &&
           text.includes("permissionMode"),
-        { watch, currSessionId: sessions.currSessionId, permissionMode },
+        {
+          watch,
+          currSessionId: sessions.currSessionId,
+          reasoningEffort,
+          permissionMode,
+        },
       ),
     );
     try {
       await sessions[action](action === "deleteSession" ? "old" : undefined);
       await nextTick();
+      assert.equal(reasoningEffort.value, "");
       assert.equal(permissionMode.value, "ask");
     } finally {
       scope.stop();
@@ -285,8 +292,9 @@ for (const action of ["newChat", "deleteSession"]) {
   });
 }
 
-test("opening a conversation restores its permission mode", async () => {
+test("opening a conversation restores its thinking level and permission mode", async () => {
   const storage = memoryStorage();
+  prefs.writeChatSessionPref("stored", "reasoning_effort", "high", storage);
   prefs.writeChatSessionPref("stored", "permission_mode", "workspace", storage);
   prefs.writeChatSessionPref("odd", "permission_mode", "root", storage);
   prefs.writeChatSessionPref("noask", "permission_mode", "workspace_no_ask", storage);
@@ -300,6 +308,7 @@ test("opening a conversation restores its permission mode", async () => {
     router: { push: async () => {} },
     loadedSessions: { stored: true, fresh: true, odd: true, noask: true },
     loadSessionMessages: async () => {},
+    reasoningEffort: ref("low"),
     permissionMode: ref("full"),
     readChatSessionPrefs: (id) => prefs.readChatSessionPrefs(id, storage),
     readSessionProviderSelection: () => null,
@@ -313,8 +322,10 @@ test("opening a conversation restores its permission mode", async () => {
     context,
   );
   await context.selectSession("stored", false);
+  assert.equal(context.reasoningEffort.value, "high");
   assert.equal(context.permissionMode.value, "workspace");
   await context.selectSession("fresh", false);
+  assert.equal(context.reasoningEffort.value, "");
   assert.equal(context.permissionMode.value, "ask");
   context.permissionMode.value = "full";
   // An unknown stored mode falls back to asking.

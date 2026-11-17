@@ -5261,3 +5261,17 @@ async def test_v1_chat_file_change_undo_route(
     )
     assert foreign.status_code == 409
     assert target.read_text(encoding="utf-8") == "agent\n"
+
+
+@pytest.mark.asyncio
+async def test_v1_regenerate_rejects_unknown_reasoning_effort(
+    asgi_client: httpx.AsyncClient,
+):
+    response = await asgi_client.post(
+        "/api/v1/chat/sessions/conv-1/messages/1/regenerate",
+        json={"reasoning_effort": "xhigh"},
+        headers=_jwt_headers(),
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"][-1] == "reasoning_effort"
