@@ -287,15 +287,13 @@
     "empty": "No workbench views are registered. Enable a plugin that provides one.",
     "loadError": "Could not load workbench views.",
     "retry": "Retry",
-
     "title": "Workbench",
     "openView": "Open in workbench",
     "hide": "Hide workbench",
     "expand": "Expand workbench",
     "restore": "Restore panel size",
     "resize": "Resize workbench",
-    "closeTab": "Close {title}",
-    "resize": "Resize workbench"
+    "closeTab": "Close {title}"
   },
   "executionError": {
     "noModel": {
@@ -369,6 +367,24 @@
       "low": "Low",
       "medium": "Medium",
       "high": "High"
+    }
+  },
+  "messageActions": {
+    "edit": {
+      "title": "Edit",
+      "description": "Once saved, this is sent as your latest message and the chat continues from here."
+    },
+    "retry": {
+      "title": "Regenerate",
+      "description": "Regenerate this reply, optionally with another model."
+    },
+    "copy": {
+      "title": "Copy",
+      "description": "Copy the text of this message."
+    },
+    "stats": {
+      "title": "Details",
+      "description": "Token usage and timing of this reply."
     }
   }
 }

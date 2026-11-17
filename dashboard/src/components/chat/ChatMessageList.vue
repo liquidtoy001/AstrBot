@@ -358,18 +358,19 @@
             <span v-if="isUserMessage(msg) && msg.created_at">{{
               formatTime(msg.created_at)
             }}</span>
-            <span
-              v-if="canEditMessage(msg, msgIndex)"
-              :title="
-                msg.can_edit === false
-                  ? tm(
-                      `history.${
-                        msg.edit_unavailable_reason || 'context_unavailable'
-                      }`,
-                    )
-                  : tm('history.edit')
-              "
-            >
+            <span v-if="canEditMessage(msg, msgIndex)">
+              <ActionTooltip
+                :title="tm('messageActions.edit.title')"
+                :description="
+                  msg.can_edit === false
+                    ? tm(
+                        `history.${
+                          msg.edit_unavailable_reason || 'context_unavailable'
+                        }`,
+                      )
+                    : tm('messageActions.edit.description')
+                "
+              />
               <v-btn
                 icon
                 size="x-small"
@@ -409,9 +410,14 @@
               icon
               size="x-small"
               variant="text"
+              :aria-label="tm('messageActions.copy.title')"
               @click="copyMessage(msg)"
             >
               <Copy :size="14" :stroke-width="2" />
+              <ActionTooltip
+                :title="tm('messageActions.copy.title')"
+                :description="tm('messageActions.copy.description')"
+              />
             </v-btn>
             <v-menu
               v-if="messageContent(msg).agentStats"
@@ -421,6 +427,10 @@
               <template #activator="{ props: statsProps }">
                 <v-btn v-bind="statsProps" icon size="x-small" variant="text">
                   <Info :size="14" :stroke-width="2" />
+                  <ActionTooltip
+                    :title="tm('messageActions.stats.title')"
+                    :description="tm('messageActions.stats.description')"
+                  />
                 </v-btn>
               </template>
               <v-card class="stats-card" elevation="4">
@@ -553,6 +563,7 @@ import IPythonToolBlock from "@/components/chat/message_list_comps/IPythonToolBl
 import RefsSidebar from "@/components/chat/message_list_comps/RefsSidebar.vue";
 import ActionRef from "@/components/chat/message_list_comps/ActionRef.vue";
 import ButtonActionRow from "@/components/chat/ButtonActionRow.vue";
+import ActionTooltip from "@/components/chat/message_list_comps/ActionTooltip.vue";
 import MarkdownMessagePart from "@/components/chat/message_list_comps/MarkdownMessagePart.vue";
 import StyledMenu from "@/components/shared/StyledMenu.vue";
 import {

@@ -287,15 +287,13 @@
     "empty": "还没有注册的工作台视图。启用提供此类视图的插件后，会显示在这里。",
     "loadError": "无法加载工作台视图。",
     "retry": "重试",
-
     "title": "工作台",
     "openView": "在工作台中打开",
     "hide": "收起工作台",
     "expand": "展开工作台",
     "restore": "还原面板大小",
     "resize": "调整工作台宽度",
-    "closeTab": "关闭 {title}",
-    "resize": "调整工作台宽度"
+    "closeTab": "关闭 {title}"
   },
   "executionError": {
     "noModel": {
@@ -369,6 +367,24 @@
       "low": "低",
       "medium": "中",
       "high": "高"
+    }
+  },
+  "messageActions": {
+    "edit": {
+      "title": "编辑",
+      "description": "保存后，此内容将作为你的最新消息发送，并从此处重新开始。"
+    },
+    "retry": {
+      "title": "重新生成",
+      "description": "重新生成这条回复，也可以换一个模型。"
+    },
+    "copy": {
+      "title": "复制",
+      "description": "复制这条消息的文字。"
+    },
+    "stats": {
+      "title": "详情",
+      "description": "查看这次回复的 token 用量和耗时。"
     }
   }
 }
