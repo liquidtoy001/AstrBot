@@ -94,6 +94,7 @@ ChatUI supports these common workflows:
 - Select the config profile, model provider, and model on the chat page; if Provider session separation is enabled, you can also choose a model for the current session only.
 - Choose a permission mode for the current conversation (Workspace / Ask for approval / Full access) next to **+** in the input box. Tools that need approval show an approval card above the input box, and the outcome stays in the reply. See [Tool approval and permission modes](./tool-approval.md).
 - Send text, images, files, and voice input; uploaded attachments show previews and use file signature checks to help identify file types.
+- See the changes the model made to local files and undo a single change; see [File changes and undo](#file-changes-and-undo) below.
 - View model thinking, tool-call status, knowledge-base or web-search references, and per-message token and latency statistics.
 - Copy or regenerate existing replies, including regenerating with another model. Each reply, including its tool calls and button cards, is saved as one record, so it stays one bubble after a reload and copy or regenerate apply to the whole reply. Older replies already saved as several records are not merged.
 - A tool call that has not returned when the reply ends is shown as **Interrupted, result unknown** instead of a running timer; its action may still have taken effect.
@@ -101,6 +102,20 @@ ChatUI supports these common workflows:
 - Switch between streaming/normal response modes and SSE/WebSocket transport modes.
 
 To return to the model configured in the selected profile, open the model selector and choose **Default model** (**Follow the selected profile's default model**). This clears the override for the current conversation; other conversations retain their saved model choices. Logging out clears all saved ChatUI model choices in this browser.
+
+### File changes and undo
+
+When the Agent runs in the local (`local`) computer runtime, the cards of the file write and file edit tools show the change in ChatUI: the file path (relative to the conversation workspace; outside it, `~` stands for the home directory), lines added and removed, and, when expanded, the changed region (up to 40 lines per side, marked as truncated beyond that). The model receives only the usual text result, not this preview.
+
+**Undo this change** on the card (**Undo (delete created file)** for a file the change created) restores the file to its content before the change, after a confirmation. The undo is refused, with the reason shown, unless:
+
+- the user asking is the owner of the conversation that made the change;
+- the file is still at the same place and has not been replaced by a symbolic link or moved;
+- the file content is still exactly what the change left (a file edited again afterwards cannot be undone).
+
+Each change can be undone once. The file is restored by writing a temporary file in the same folder and replacing the original, keeping its permissions. Files over 512 KB or not UTF-8 text show only the path, without a preview or undo; symbolic links get no undo.
+
+Undo records are kept under `chatui_file_undo` in the AstrBot data directory, up to the latest 300 (each keeps the full previous content, about 200 MB in the worst case); deleting a conversation or thread removes its records. Non-local runtimes such as the sandbox and platforms other than ChatUI do not show these cards.
 
 > [!NOTE]
 > To keep message delivery ordered, keep only one ChatUI page open for the same browser session. If you open chat in multiple tabs, the system may ask you to reconnect.

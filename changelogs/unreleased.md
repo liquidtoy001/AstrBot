@@ -24,6 +24,11 @@
 - 总览统计并入 `/api/v1/stats`，新增 `daily_usage` 与 `system`，移除开发阶段的 `/api/v1/stats/overview`。使用 `sections` 选择 `messages`、`daily_usage`、`process`、`system` 或 `instances`；省略时返回全部数据。旧接口 `/api/stat/get` 同样支持。
 - Consolidate overview metrics into `/api/v1/stats`, adding `daily_usage` and `system` and removing the development-only `/api/v1/stats/overview`. Use `sections` to select `messages`, `daily_usage`, `process`, `system`, or `instances`; omit it for the full response. Legacy `/api/stat/get` also supports this parameter.
 
+### ChatUI file changes and undo / ChatUI 文件改动与撤销
+
+- 本地运行环境下，写入和编辑文件工具的卡片显示改动预览（路径、增删行数、改动的那一段），并可撤销这一次改动；只有对话所属的用户、且文件仍是改动刚完成时的状态才能撤销，符号链接和被替换的文件会被拒绝，恢复采用原子替换。新增接口 `POST /api/v1/chat/file-changes/{change_id}/undo`（拒绝时返回 409）。删除对话或分支追问时清除其撤销记录。
+- In the local computer runtime, file write and edit tool cards show a preview of the change (path, lines added and removed, the changed region) and can undo that change. Only the owner of the conversation can undo, and only while the file is unchanged since; symbolic links and replaced files are refused, and the file is restored with an atomic replace. Adds `POST /api/v1/chat/file-changes/{change_id}/undo` (409 when refused). Deleting a conversation or thread removes its undo records.
+
 ### Plugin AI documentation / 插件 AI 文档
 
 - 调用 AI → AI：按模型、Agent、工具、会话与对话、其他拆分文档。多 Agent 编排归入构建自定义 Agent 的示例，人格管理归入其他；原 AI 地址保留为概览入口。
