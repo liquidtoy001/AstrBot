@@ -6,6 +6,7 @@ import vm from "node:vm";
 import ts from "typescript";
 import { effectScope, nextTick, ref, watch } from "vue";
 import { loadSource, mountSetup } from "./helpers/vueHarness.mjs";
+import { messagesHarness } from "./helpers/messagesHarness.mjs";
 const prefs = loadSource(
   new URL("../src/utils/chatSessionPrefs.mjs", import.meta.url),
 );
@@ -95,6 +96,32 @@ test("corrupted or unavailable storage falls back to no options", () => {
   prefs.writeChatSessionPref("s1", "permission_mode", "workspace", broken);
   prefs.clearChatSessionPrefs("s1", broken);
 });
+
+for (const transport of ["sse", "websocket", "regenerate"]) {
+  test(`${transport} requests carry fast mode with the other options`, async () => {
+    const h = messagesHarness({
+      permission_mode: "full",
+      reasoning_effort: "medium",
+      fast_mode: true,
+    });
+    try {
+      if (transport === "regenerate")
+        void h.messages.regenerateMessage("one", h.bot);
+      else h.send(transport);
+      await new Promise((resolve) => setImmediate(resolve));
+      const payload =
+        transport === "websocket"
+          ? h.sockets[0].sent
+          : JSON.parse(h.requests[0].request.body);
+      assert.deepEqual(
+        [payload.permission_mode, payload.reasoning_effort, payload.fast_mode],
+        ["full", "medium", true],
+      );
+    } finally {
+      h.stop();
+    }
+  });
+}
 
 function loadSessions(storage, chatApi) {
   return loadSource(
@@ -187,6 +214,8 @@ test("batch-deleting the current conversation leaves it", async () => {
 test("a thread sends the options of the conversation it belongs to", async () => {
   const storage = memoryStorage();
   prefs.writeChatSessionPref("parent", "permission_mode", "workspace", storage);
+  prefs.writeChatSessionPref("parent", "reasoning_effort", "high", storage);
+  prefs.writeChatSessionPref("parent", "fast_mode", true, storage);
   const requests = [];
   const component = loadSource(
     new URL("../src/components/chat/ThreadPanel.vue", import.meta.url),
@@ -230,7 +259,10 @@ test("a thread sends the options of the conversation it belongs to", async () =>
     h.state.draft = "hello";
     void h.state.send();
     await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(JSON.parse(requests[0].request.body).permission_mode, "workspace");
+    const body = JSON.parse(requests[0].request.body);
+    assert.equal(body.permission_mode, "workspace");
+    assert.equal(body.reasoning_effort, "high");
+    assert.equal(body.fast_mode, true);
   } finally {
     h.stop();
   }
@@ -295,12 +327,13 @@ for (const action of ["newChat", "deleteSession"]) {
   });
 }
 
-test("opening a conversation restores its thinking level and permission mode", async () => {
+test("opening a conversation restores its thinking level, permission mode and fast mode", async () => {
   const storage = memoryStorage();
   prefs.writeChatSessionPref("stored", "reasoning_effort", "high", storage);
   prefs.writeChatSessionPref("stored", "permission_mode", "workspace", storage);
   prefs.writeChatSessionPref("odd", "permission_mode", "root", storage);
   prefs.writeChatSessionPref("noask", "permission_mode", "workspace_no_ask", storage);
+  prefs.writeChatSessionPref("stored", "fast_mode", true, storage);
   const context = {
     showChatWorkspace() {},
     selectedProjectId: ref(null),
@@ -313,6 +346,7 @@ test("opening a conversation restores its thinking level and permission mode", a
     loadSessionMessages: async () => {},
     reasoningEffort: ref("low"),
     permissionMode: ref("full"),
+    fastMode: ref(false),
     readChatSessionPrefs: (id) => prefs.readChatSessionPrefs(id, storage),
     readSessionProviderSelection: () => null,
     setProviderSelection() {},
@@ -327,9 +361,11 @@ test("opening a conversation restores its thinking level and permission mode", a
   await context.selectSession("stored", false);
   assert.equal(context.reasoningEffort.value, "high");
   assert.equal(context.permissionMode.value, "workspace");
+  assert.equal(context.fastMode.value, true);
   await context.selectSession("fresh", false);
   assert.equal(context.reasoningEffort.value, "");
   assert.equal(context.permissionMode.value, "ask");
+  assert.equal(context.fastMode.value, false);
   context.permissionMode.value = "full";
   // An unknown stored mode falls back to asking.
   await context.selectSession("odd", false);
