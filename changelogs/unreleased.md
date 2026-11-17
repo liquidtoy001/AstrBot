@@ -43,6 +43,8 @@
 
 - 模型选择器新增按对话的快速模式开关（输出更快、价格更高）：官方 OpenAI、xAI、OpenRouter 接口发送 `service_tier: "priority"`，官方 Anthropic 接口上的 Claude Opus 5.5、Fable 5.2、Mythos 5.2 发送 `speed: "fast"`。是否支持由后端判断，提供商列表中支持的条目带 `supports_fast_mode: true`；聊天请求新增 `fast_mode`，`ProviderRequest.fast_mode` 可供插件读写。
 - Add a per-conversation fast mode switch to the model selector (faster output at a higher price): `service_tier: "priority"` on the official OpenAI, xAI and OpenRouter APIs, and `speed: "fast"` for Claude Opus 5.5, Fable 5.2 and Mythos 5.2 on the official Anthropic API. The backend decides support; supported entries in the provider list carry `supports_fast_mode: true`. Chat requests accept `fast_mode`, and `ProviderRequest.fast_mode` is available to plugins.
+- ChatUI 的模型按钮只显示模型名，不再带提供商前缀；悬停显示完整的提供商 ID。
+- The ChatUI model button shows only the model name, without the provider prefix; hover to see the full provider ID.
 - 自己发送的消息也有复制按钮；消息下方的按钮悬停时显示名称和说明。
 - Your own messages get a copy button, and the buttons under a message show a name and description on hover.
 - 回复进行中时，头像中的 AstrBot 标志播放动画（小星环绕、金蓝交替）；静止时仍是原来的标志，系统开启减少动态效果时不播放。

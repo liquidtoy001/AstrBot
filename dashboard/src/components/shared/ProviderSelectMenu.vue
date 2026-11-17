@@ -14,6 +14,7 @@
           class="provider-trigger"
           :class="`provider-trigger--${variant}`"
           type="button"
+          :title="modelOnly ? selectedProvider?.id : undefined"
         >
           <span class="provider-trigger-copy">
             <span class="provider-trigger-title">{{ triggerTitle }}</span>
@@ -493,6 +494,8 @@ const props = withDefaults(
     variant?: "config" | "input" | "header";
     allowEmpty?: boolean;
     multiple?: boolean;
+    // The trigger shows only the model name (provider ID in the tooltip).
+    modelOnly?: boolean;
     // Load providers when mounted, so the selected provider's type is known
     // before the menu is first opened (ChatUI's thinking level needs it).
     preload?: boolean;
@@ -576,6 +579,15 @@ const triggerTitle = computed(() => {
           count: selectedProviderIds.value.length,
         })
       : sharedTm("providerSelector.notSelected");
+  }
+  // Until the provider list arrives, the saved model name covers the trigger.
+  if (props.modelOnly && (selectedProvider.value || props.fallbackModel)) {
+    return (
+      selectedProvider.value?.model ||
+      props.fallbackModel ||
+      selectedProvider.value?.id ||
+      ""
+    );
   }
   if (selectedProvider.value?.id) return selectedProvider.value.id;
   if (typeof props.modelValue === "string" && props.modelValue) {

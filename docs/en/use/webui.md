@@ -91,7 +91,7 @@ ChatUI supports these common workflows:
 - The sidebar initially loads the 30 most recent conversations. Scroll near the bottom to automatically load older conversations, with a progress bar while loading. Automatic requests pause after a failure; select **Retry** to continue.
   If the list does not fill the sidebar, more pages load automatically. Opening an older conversation by URL keeps its title and selected sidebar entry visible before its page loads.
 - Create, rename, and delete conversations, and switch previous conversations from the sidebar.
-- Select the config profile, model provider, and model on the chat page; if Provider session separation is enabled, you can also choose a model for the current session only.
+- Select the config profile, model provider, and model on the chat page; if Provider session separation is enabled, you can also choose a model for the current session only. The model button shows only the model name (hover to see the full provider ID), followed by the thinking level and a "Fast" chip.
 - Choose a thinking level (low / medium / high) for the current conversation at the top of the model selector; see [Thinking level](#thinking-level) below. Supported models also offer [Fast mode](#fast-mode).
 - Choose a permission mode for the current conversation (Workspace / Ask for approval / Full access) next to **+** in the input box. Tools that need approval show an approval card above the input box, and the outcome stays in the reply. See [Tool approval and permission modes](./tool-approval.md).
 - Send text, images, files, and voice input; uploaded attachments show previews and use file signature checks to help identify file types.
