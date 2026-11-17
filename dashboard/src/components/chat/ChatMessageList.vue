@@ -405,7 +405,7 @@
               @retry-with-model="emit('regenerateWithModel', msg, $event)"
             />
             <v-btn
-              v-if="enableCopy && !isUserMessage(msg)"
+              v-if="enableCopy"
               icon
               size="x-small"
               variant="text"

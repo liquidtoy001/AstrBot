@@ -190,7 +190,6 @@
           <div v-if="showMessageMeta(msg, msgIndex)" class="message-meta">
             <span v-if="msg.created_at">{{ formatTime(msg.created_at) }}</span>
             <v-btn
-              v-if="!isUserMessage(msg)"
               icon="mdi-content-copy"
               size="x-small"
               variant="text"
