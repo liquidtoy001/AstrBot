@@ -706,3 +706,71 @@ async def test_workspace_shell_session_write_requires_sandbox(monkeypatch, actio
         context, action=action, session_id="shell-1", chars="hello"
     )
     assert write.await_args.kwargs["require_sandboxed"] is True
+
+
+@pytest.mark.asyncio
+async def test_file_write_survives_failed_undo_journal(tmp_path, monkeypatch):
+    context = _make_local_run_context(
+        "admin",
+        {
+            "admin": {
+                "allow_execution": True,
+                "allow_network": True,
+                "filesystem_scope": "host",
+            }
+        },
+    )
+    event = context.context.event
+    event.get_platform_name = lambda: "webchat"
+    event.session_id = "webchat!user-1!files"
+    monkeypatch.setattr(
+        fs, "workspace_root_for_context", AsyncMock(return_value=tmp_path)
+    )
+    monkeypatch.setattr(
+        fs,
+        "get_booter",
+        AsyncMock(return_value=SimpleNamespace(fs=local.LocalFileSystemComponent())),
+    )
+    record = Mock(side_effect=OSError("journal unavailable"))
+    monkeypatch.setattr(fs.file_undo, "record_change", record)
+    target = tmp_path / "written.txt"
+    result = await fs.FileWriteTool().call(context, path=str(target), content="saved")
+    assert isinstance(result, str) and "successfully" in result
+    assert target.read_text(encoding="utf-8") == "saved"
+    record.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "tool_type,arguments",
+    [
+        (fs.FileWriteTool, {"path": "remote.txt", "content": "new"}),
+        (fs.FileEditTool, {"path": "remote.txt", "old": "old", "new": "new"}),
+    ],
+)
+async def test_remote_file_tools_do_not_snapshot_local_files(
+    monkeypatch, tool_type, arguments
+):
+    context = _make_run_context(False, "admin")
+    context.context.event.get_platform_name = lambda: "webchat"
+    remote = SimpleNamespace(
+        write_file=AsyncMock(return_value={"success": True}),
+        edit_file=AsyncMock(return_value={"success": True}),
+    )
+    monkeypatch.setattr(
+        fs, "get_booter", AsyncMock(return_value=SimpleNamespace(fs=remote))
+    )
+    snapshot = Mock(side_effect=AssertionError("remote path must not be read locally"))
+    record = Mock(side_effect=AssertionError("remote changes cannot be undone locally"))
+    monkeypatch.setattr(fs.file_undo, "snapshot_before", snapshot)
+    monkeypatch.setattr(fs.file_undo, "record_change", record)
+    result = await tool_type().call(context, **arguments)
+    assert isinstance(result, str) and (
+        "successfully" in result or result.startswith("Edited remote.txt.")
+    )
+    if tool_type is fs.FileWriteTool:
+        remote.write_file.assert_awaited_once()
+    else:
+        remote.edit_file.assert_awaited_once()
+    snapshot.assert_not_called()
+    record.assert_not_called()

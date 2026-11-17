@@ -42,6 +42,7 @@ def _make_context(
         role=role,
         unified_msg_origin=umo,
         get_sender_id=lambda: "user-1",
+        get_platform_name=lambda: "test",
     )
     astr_ctx = SimpleNamespace(context=config_holder, event=event)
     return ContextWrapper(context=astr_ctx)
@@ -1202,3 +1203,48 @@ async def test_file_edit_still_decodes_escapes_when_the_text_does_not_match(
 
     assert "Replaced 1 occurrence" in result
     assert (workspace / "notes.txt").read_text(encoding="utf-8") == "alpha\ngamma\n"
+
+
+@pytest.mark.asyncio
+async def test_file_write_and_edit_return_chatui_change_on_webchat(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+):
+    """On webchat the tools return an undoable preview as structured content."""
+    from astrbot.core.astr_agent_runtime.tools.computer_tools import file_undo
+
+    workspace = _setup_local_fs_tools(monkeypatch, tmp_path)
+    monkeypatch.setattr(file_undo, "_journal_dir", lambda: tmp_path / "journal")
+    context = _make_context()
+    context.context.event.get_platform_name = lambda: "webchat"
+    context.context.event.session_id = "webchat!user-1!conv-1"
+
+    created = await fs_tools.FileWriteTool().call(
+        context, path="a.txt", content="x\ny\n"
+    )
+    edited = await fs_tools.FileEditTool().call(context, path="a.txt", old="y", new="z")
+
+    assert "File written successfully" in created.content[0].text
+    assert created.structuredContent["file_change"]["created"] is True
+    change = edited.structuredContent["file_change"]
+    assert change["removed"] == ["y"] and change["added"] == ["z"]
+    # The card shows the path relative to the conversation workspace.
+    assert created.structuredContent["file_change"]["path"] == "a.txt"
+    assert change["path"] == "a.txt"
+    assert file_undo.undo_change(change["change_id"], "user-2")[0] is False
+    assert file_undo.undo_change(change["change_id"], "user-1")[0]
+    assert (workspace / "a.txt").read_text(encoding="utf-8") == "x\ny\n"
+
+
+@pytest.mark.asyncio
+async def test_file_write_returns_plain_text_off_webchat(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+):
+    _setup_local_fs_tools(monkeypatch, tmp_path)
+
+    result = await fs_tools.FileWriteTool().call(
+        _make_context(), path="a.txt", content="x"
+    )
+
+    assert isinstance(result, str) and "File written successfully" in result

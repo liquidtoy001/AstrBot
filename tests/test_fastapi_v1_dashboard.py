@@ -5474,3 +5474,54 @@ async def test_permission_mode_rejects_unowned_session(
         permission_mode.set_conversation_permission_mode(
             "webchat!fastapi-v1-test!forbidden", None
         )
+
+
+@pytest.mark.asyncio
+async def test_v1_chat_file_change_undo_route(
+    asgi_client: httpx.AsyncClient, tmp_path, monkeypatch
+):
+    """Undo restores once, then refuses; a changed file is never touched."""
+    from astrbot.core.astr_agent_runtime.tools.computer_tools import file_undo
+
+    monkeypatch.setattr(file_undo, "_journal_dir", lambda: tmp_path / "journal")
+    owner = ("fastapi-v1-test", "webchat!fastapi-v1-test!conv-1")
+    target = tmp_path / "a.txt"
+    target.write_text("before\n", encoding="utf-8")
+    before = file_undo.snapshot_before(str(target))
+    target.write_text("after\n", encoding="utf-8")
+    change_id = file_undo.record_change(str(target), before, *owner)["change_id"]
+    url = f"/api/v1/chat/file-changes/{change_id}/undo"
+
+    unauthenticated = await asgi_client.post(url)
+    undone = await asgi_client.post(url, headers=_jwt_headers())
+    repeated = await asgi_client.post(url, headers=_jwt_headers())
+
+    assert unauthenticated.status_code == 401
+    assert target.read_text(encoding="utf-8") == "before\n"
+    assert undone.status_code == 200 and undone.json()["status"] == "ok"
+    assert repeated.status_code == 409 and repeated.json()["status"] == "error"
+
+    target.write_text("after\n", encoding="utf-8")
+    before = file_undo.snapshot_before(str(target))
+    target.write_text("agent\n", encoding="utf-8")
+    change_id = file_undo.record_change(str(target), before, *owner)["change_id"]
+    target.write_text("user edit\n", encoding="utf-8")
+    refused = await asgi_client.post(
+        f"/api/v1/chat/file-changes/{change_id}/undo", headers=_jwt_headers()
+    )
+
+    assert refused.status_code == 409
+    assert target.read_text(encoding="utf-8") == "user edit\n"
+
+    # Another user's change is refused even with a valid id.
+    target.write_text("theirs\n", encoding="utf-8")
+    before = file_undo.snapshot_before(str(target))
+    target.write_text("agent\n", encoding="utf-8")
+    change_id = file_undo.record_change(
+        str(target), before, "someone-else", "webchat!someone-else!conv"
+    )["change_id"]
+    foreign = await asgi_client.post(
+        f"/api/v1/chat/file-changes/{change_id}/undo", headers=_jwt_headers()
+    )
+    assert foreign.status_code == 409
+    assert target.read_text(encoding="utf-8") == "agent\n"
