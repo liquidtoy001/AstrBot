@@ -9,6 +9,7 @@ import yaml
 from jsonschema import Draft7Validator
 from pydantic import ValidationError
 
+from astrbot.core.astr_agent_runtime.main_agent.request import collect_initial_request
 from astrbot.core.platform.astrbot_message import AstrBotMessage, MessageMember
 from astrbot.core.platform.message_type import MessageType
 from astrbot.core.platform.platform_metadata import PlatformMetadata
@@ -74,6 +75,8 @@ def test_openapi_contract_accepts_the_options(schema_name):
         payload["message"] = "hello"
     validator.validate(payload)
     validator.validate({**payload, "permission_mode": "workspace_no_ask"})
+    validator.validate({**payload, "reasoning_effort": "high"})
+    assert list(validator.iter_errors({**payload, "reasoning_effort": "xhigh"}))
     assert list(validator.iter_errors({**payload, "permission_mode": "root"}))
 
 
@@ -236,3 +239,36 @@ async def test_deleting_a_conversation_forgets_its_live_mode(thread):
         assert _conversation_modes["webchat!alice!keep"] == "full"
     finally:
         _conversation_modes.clear()
+
+
+# Thinking level on the options path.
+
+
+@pytest.mark.parametrize("invalid", INVALID)
+def test_resolver_keeps_only_valid_thinking_levels(invalid):
+    assert (
+        resolve_webchat_chat_options({"reasoning_effort": "low"})["reasoning_effort"]
+        == "low"
+    )
+    assert (
+        resolve_webchat_chat_options({"reasoning_effort": invalid})["reasoning_effort"]
+        is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_thinking_level_reaches_the_provider_request():
+    assert _event({"reasoning_effort": "xhigh"}).get_extra("reasoning_effort") is None
+    event = _event({"reasoning_effort": "medium"})
+    assert event.get_extra("reasoning_effort") == "medium"
+    req, _ = await collect_initial_request(
+        event,
+        SimpleNamespace(),
+        SimpleNamespace(provider_wake_prefix="", provider_settings={}),
+    )
+    assert req.reasoning_effort == "medium"
+
+
+def test_request_models_reject_unknown_levels():
+    with pytest.raises(ValidationError):
+        ChatThreadMessageRequest(message="hi", reasoning_effort="xhigh")
