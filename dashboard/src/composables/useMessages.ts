@@ -1880,6 +1880,7 @@ export function finishToolCall(record: ChatRecord, result: any) {
       // mark.
       delete tool.phase;
       tool.result = result.result;
+      if (result.file_change) tool.file_change = result.file_change;
       tool.finished_ts = result.ts || Date.now() / 1000;
       return;
     }
@@ -1891,6 +1892,7 @@ export function finishToolCall(record: ChatRecord, result: any) {
         id: targetId,
         result: result.result,
         finished_ts: result.ts || Date.now() / 1000,
+        file_change: result.file_change,
       },
     ],
   });

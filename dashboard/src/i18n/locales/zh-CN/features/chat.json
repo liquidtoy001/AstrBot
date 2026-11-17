@@ -344,5 +344,21 @@
       "description": "按配置的权限访问，所有工具都不再询问"
     },
     "saveFailed": "无法应用权限模式：{error}"
+  },
+  "fileChange": {
+    "changes": "改动",
+    "line": "第 {line} 行",
+    "truncated": "…（改动较多，只显示前一部分）",
+    "undo": "撤销这次修改",
+    "undoCreate": "撤销（删除新建的文件）",
+    "confirm": "把这个文件恢复到修改前的内容？",
+    "confirmCreate": "删除这个由本次调用新建的文件？",
+    "done": "已撤销",
+    "reasons": {
+      "none": "没有预览",
+      "too_large": "文件太大（超过 512 KB），没有预览，不能撤销",
+      "binary": "不是 UTF-8 文本，没有预览，不能撤销",
+      "unreadable": "不是可以安全读取的普通文件（例如链接）：没有预览，不能撤销"
+    }
   }
 }
