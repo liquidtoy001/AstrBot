@@ -92,12 +92,12 @@ ChatUI supports these common workflows:
   If the list does not fill the sidebar, more pages load automatically. Opening an older conversation by URL keeps its title and selected sidebar entry visible before its page loads.
 - Create, rename, and delete conversations, and switch previous conversations from the sidebar.
 - Select the config profile, model provider, and model on the chat page; if Provider session separation is enabled, you can also choose a model for the current session only.
-- Choose a thinking level (low / medium / high) for the current conversation at the top of the model selector; see [Thinking level](#thinking-level) below.
+- Choose a thinking level (low / medium / high) for the current conversation at the top of the model selector; see [Thinking level](#thinking-level) below. Supported models also offer [Fast mode](#fast-mode).
 - Choose a permission mode for the current conversation (Workspace / Ask for approval / Full access) next to **+** in the input box. Tools that need approval show an approval card above the input box, and the outcome stays in the reply. See [Tool approval and permission modes](./tool-approval.md).
 - Send text, images, files, and voice input; uploaded attachments show previews and use file signature checks to help identify file types.
 - See the changes the model made to local files and undo a single change; see [File changes and undo](#file-changes-and-undo) below.
 - View model thinking, tool-call status, knowledge-base or web-search references, and per-message token and latency statistics.
-- Copy or regenerate existing replies, including regenerating with another model. Each reply, including its tool calls and button cards, is saved as one record, so it stays one bubble after a reload and copy or regenerate apply to the whole reply. Older replies already saved as several records are not merged.
+- Copy or regenerate existing replies, including regenerating with another model. Each reply, including its tool calls and button cards, is saved as one record, so it stays one bubble after a reload and copy or regenerate apply to the whole reply. Older replies already saved as several records are not merged. Your own messages can be copied too. Hovering over the buttons under a message explains what they do. While a reply is in progress, the AstrBot mark in its avatar is animated (not when the system asks for reduced motion).
 - A tool call that has not returned when the reply ends is shown as **Interrupted, result unknown** instead of a running timer; its action may still have taken effect.
 - Edit a user message and continue generation from that point, or start a thread from a specific excerpt.
 - Switch between streaming/normal response modes and SSE/WebSocket transport modes.
@@ -131,6 +131,17 @@ The **Thinking level** at the top of the model selector applies to the current c
 | Google Gemini | A thinking level on Gemini 3 and 4 (a level the model does not offer falls back to the model default); a thinking budget on Gemini 2.5 |
 
 Other provider types show no levels and keep their provider configuration. A new conversation starts at the default level (low) instead of inheriting the previous one. The choice is stored in this browser (one entry per conversation) and is removed when the conversation is deleted. It affects ChatUI only: provider configuration and other platforms are unchanged. Plugins can read or change `ProviderRequest.reasoning_effort` in `on_llm_request`.
+
+### Fast mode
+
+The **Fast mode** switch at the top of the model selector gives faster output in the current conversation, **billed at a higher price**. When it is on, "Fast" appears after the model name. The switch appears only where the provider offers it:
+
+| Provider | What is sent |
+|---|---|
+| The official OpenAI, xAI and OpenRouter APIs (`api.openai.com`, `api.x.ai`, `openrouter.ai`) | `service_tier: "priority"` |
+| Claude Opus 5.5, Fable 5.2 and Mythos 5.2 on the official Anthropic API (`api.anthropic.com`) | `speed: "fast"` |
+
+Other addresses (including third-party gateways) and other models do not show the switch, because they may ignore or reject the field. The backend decides support from the provider's API address and configured model (picking another model for the same provider hides the switch), and sends it only to the model selected for the request, never to fallback providers. Like the thinking level, the choice is stored per conversation in this browser, starts off in a new conversation, and is removed when the conversation is deleted or you log out. Plugins can read or change `ProviderRequest.fast_mode` in `on_llm_request`.
 
 > [!NOTE]
 > To keep message delivery ordered, keep only one ChatUI page open for the same browser session. If you open chat in multiple tabs, the system may ask you to reconnect.
