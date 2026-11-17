@@ -12,6 +12,7 @@ from astrbot.core.astr_agent_runtime.permission_mode import (
     conversation_key,
     set_conversation_permission_mode,
 )
+from astrbot.core.astr_agent_runtime.tools.computer_tools.file_undo import undo_change
 from astrbot.core.chatui import ViewActionRequest, ViewError, view_store
 from astrbot.core.message.components import UIInteraction, ViewContext
 from astrbot.dashboard.async_utils import run_maybe_async
@@ -445,6 +446,26 @@ async def get_chat_session(
             page_size=page_size,
         )
     )
+
+
+@router.post("/chat/file-changes/{change_id}/undo")
+async def undo_chat_file_change(
+    change_id: str,
+    auth: AuthContext = Depends(require_chat_scope),
+):
+    """Undo one file write/edit made by the agent, if the file is unchanged since.
+
+    Args:
+        change_id: Journal id from the tool call's ``file_change`` preview.
+        auth: Only the user whose conversation made the change may undo it.
+
+    Returns:
+        OK with a message, or 409 when the undo is refused.
+    """
+    undone, message = await asyncio.to_thread(undo_change, change_id, auth.username)
+    if not undone:
+        return JSONResponse(error(message), status_code=409)
+    return ok({"message": message})
 
 
 @router.patch("/chat/sessions/{session_id}")

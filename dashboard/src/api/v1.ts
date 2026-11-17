@@ -882,6 +882,11 @@ export const chatApi = {
       openApiV1.stopChatSession({ path: { session_id: sessionId } }),
     );
   },
+  undoFileChange(changeId: string) {
+    return typed<{ message: string }>(
+      openApiV1.undoChatFileChange({ path: { change_id: changeId } }),
+    );
+  },
   updateMessage(
     sessionId: string,
     messageId: string | number,

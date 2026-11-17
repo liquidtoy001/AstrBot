@@ -61,6 +61,7 @@ from astrbot.core.utils.astrbot_path import (
     get_astrbot_temp_path,
 )
 
+from . import file_undo
 from . import util as computer_util
 from .util import (
     check_admin_permission,
@@ -498,6 +499,11 @@ class FileWriteTool(FunctionTool):
                 context.context.context,
                 context.context.event.unified_msg_origin,
             )
+            # ChatUI change preview / undo (local runtime on webchat only).
+            event = context.context.event
+            track_change, before = file_undo.track_chatui_change(
+                event, local_env, normalized_path
+            )
             file_descriptor = None
             if restricted:
                 if current_workspace_root is not None:
@@ -539,7 +545,12 @@ class FileWriteTool(FunctionTool):
                     "Error writing file: "
                     f"{error_detail or 'unknown filesystem write error'}"
                 )
-            return f"File written successfully: {normalized_path}"
+            message = f"File written successfully: {normalized_path}"
+            if track_change:
+                return file_undo.chatui_tool_result(
+                    message, event, normalized_path, before, current_workspace_root
+                )
+            return message
         except PermissionError as exc:
             return f"Error: {exc}"
         except Exception as exc:
@@ -623,6 +634,11 @@ class FileEditTool(FunctionTool):
                 context.context.context,
                 context.context.event.unified_msg_origin,
             )
+            # ChatUI change preview / undo (local runtime on webchat only).
+            event = context.context.event
+            track_change, before = file_undo.track_chatui_change(
+                event, local_env, normalized_path
+            )
             file_descriptor = None
             if restricted:
                 file_descriptor = open_file_in_allowed_roots(
@@ -668,10 +684,15 @@ class FileEditTool(FunctionTool):
                 )
             replacements = int(result.get("replacements", 0) or 0)
             mode_text = "all matches" if replace_all else "first match"
-            return (
+            message = (
                 f"Edited {normalized_path}. "
                 f"Replaced {replacements} occurrence(s) using {mode_text} mode."
             )
+            if track_change:
+                return file_undo.chatui_tool_result(
+                    message, event, normalized_path, before, current_workspace_root
+                )
+            return message
         except PermissionError as exc:
             return f"Error: {exc}"
         except Exception as exc:

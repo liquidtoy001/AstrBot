@@ -321,18 +321,21 @@ async def present_turn(
             if not emit_output:
                 continue
             if event.get_platform_name() == "webchat":
+                result_data = {
+                    "id": call_id,
+                    "result": text,
+                    "ts": output.created_at.timestamp(),
+                }
+                # File write/edit tools attach a change preview for the
+                # ChatUI card (structured content never reaches the model).
+                structured = getattr(payload, "structured_result", None)
+                if isinstance(structured, dict) and isinstance(
+                    structured.get("file_change"), dict
+                ):
+                    result_data["file_change"] = structured["file_change"]
                 await event.send(
                     MessageChain(
-                        type="tool_call_result",
-                        chain=[
-                            Json(
-                                data={
-                                    "id": call_id,
-                                    "result": text,
-                                    "ts": output.created_at.timestamp(),
-                                }
-                            )
-                        ],
+                        type="tool_call_result", chain=[Json(data=result_data)]
                     )
                 )
             elif show_tool_use and show_tool_call_result:
