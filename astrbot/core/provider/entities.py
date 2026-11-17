@@ -191,6 +191,10 @@ class ToolCallsResult:
         ]
 
 
+# Generic per-request thinking levels (ProviderRequest.reasoning_effort).
+REASONING_EFFORTS = ("low", "medium", "high")
+
+
 @dataclass
 class ProviderRequest:
     prompt: str | None = None
@@ -218,6 +222,15 @@ class ProviderRequest:
     """附加的上次请求后工具调用的结果。参考: https://platform.openai.com/docs/guides/function-calling#handling-function-calls"""
     model: str | None = None
     """模型名称，为 None 时使用提供商的默认模型"""
+    reasoning_effort: str | None = None
+    """Per-request thinking level ("low", "medium" or "high"), e.g. from ChatUI.
+
+    None keeps the provider's configured setting. Only the primary provider
+    receives it. OpenAI Chat Completions sends ``reasoning_effort``, Responses
+    ``reasoning.effort``, Anthropic adaptive thinking with an effort (or a
+    thinking budget on older models) and Gemini a thinking level or budget.
+    Plugins can read and change it in ``on_llm_request``.
+    """
 
     def __repr__(self) -> str:
         return (

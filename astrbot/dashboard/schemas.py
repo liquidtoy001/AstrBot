@@ -156,6 +156,7 @@ class ChatFlags(BaseModel):
 class ChatOptions(OpenModel):
     """Per-conversation ChatUI options; see ``resolve_webchat_chat_options``."""
 
+    reasoning_effort: Literal["low", "medium", "high"] | None = None
     permission_mode: Literal["workspace", "workspace_no_ask", "ask", "full"] | None = (
         None
     )

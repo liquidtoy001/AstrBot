@@ -302,6 +302,7 @@ class ProviderOpenAIResponses(ProviderOpenAIOfficial):
         *,
         request_max_retries: int | None = None,
         conversation_id: str | None = None,
+        reasoning_effort: str | None = None,
     ) -> LLMResponse:
         """Send a non-streaming Responses API request.
 
@@ -309,6 +310,8 @@ class ProviderOpenAIResponses(ProviderOpenAIOfficial):
             payloads: Prepared Responses API payload.
             tools: Functions available to the model.
             request_max_retries: Maximum transport-level request attempts.
+            conversation_id: Conversation ID sent as a request header.
+            reasoning_effort: Optional per-request effort override.
 
         Returns:
             Normalized AstrBot LLM response.
@@ -337,9 +340,16 @@ class ProviderOpenAIResponses(ProviderOpenAIOfficial):
         max_tokens = extra_body.pop("max_tokens", None)
         if max_tokens is not None and "max_output_tokens" not in extra_body:
             extra_body["max_output_tokens"] = max_tokens
-        reasoning_effort = extra_body.pop("reasoning_effort", None)
-        if reasoning_effort is not None and "reasoning" not in extra_body:
-            extra_body["reasoning"] = {"effort": reasoning_effort}
+        config_effort = extra_body.pop("reasoning_effort", None)
+        if config_effort is not None and "reasoning" not in extra_body:
+            extra_body["reasoning"] = {"effort": config_effort}
+        if reasoning_effort:
+            # Per-request override (e.g. ChatUI thinking level) keeps other
+            # configured reasoning options such as summary.
+            reasoning = extra_body.get("reasoning")
+            reasoning = dict(reasoning) if isinstance(reasoning, dict) else {}
+            reasoning["effort"] = reasoning_effort
+            extra_body["reasoning"] = reasoning
         extra_body.pop("previous_response_id", None)
         extra_body.pop("conversation", None)
         extra_body.pop("store", None)
@@ -373,6 +383,7 @@ class ProviderOpenAIResponses(ProviderOpenAIOfficial):
         *,
         request_max_retries: int | None = None,
         conversation_id: str | None = None,
+        reasoning_effort: str | None = None,
     ) -> AsyncGenerator[LLMResponse, None]:
         """Send a streaming Responses API request.
 
@@ -380,6 +391,8 @@ class ProviderOpenAIResponses(ProviderOpenAIOfficial):
             payloads: Prepared Responses API payload.
             tools: Functions available to the model.
             request_max_retries: Maximum transport-level request attempts.
+            conversation_id: Conversation ID sent as a request header.
+            reasoning_effort: Optional per-request effort override.
 
         Yields:
             Text/reasoning deltas followed by one complete normalized response.
@@ -408,9 +421,16 @@ class ProviderOpenAIResponses(ProviderOpenAIOfficial):
         max_tokens = extra_body.pop("max_tokens", None)
         if max_tokens is not None and "max_output_tokens" not in extra_body:
             extra_body["max_output_tokens"] = max_tokens
-        reasoning_effort = extra_body.pop("reasoning_effort", None)
-        if reasoning_effort is not None and "reasoning" not in extra_body:
-            extra_body["reasoning"] = {"effort": reasoning_effort}
+        config_effort = extra_body.pop("reasoning_effort", None)
+        if config_effort is not None and "reasoning" not in extra_body:
+            extra_body["reasoning"] = {"effort": config_effort}
+        if reasoning_effort:
+            # Per-request override (e.g. ChatUI thinking level) keeps other
+            # configured reasoning options such as summary.
+            reasoning = extra_body.get("reasoning")
+            reasoning = dict(reasoning) if isinstance(reasoning, dict) else {}
+            reasoning["effort"] = reasoning_effort
+            extra_body["reasoning"] = reasoning
         extra_body.pop("previous_response_id", None)
         extra_body.pop("conversation", None)
         extra_body.pop("store", None)

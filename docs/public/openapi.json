@@ -7845,6 +7845,9 @@
           "selected_model": {
             "type": "string"
           },
+          "reasoning_effort": {
+            "$ref": "#/components/schemas/ChatReasoningEffort"
+          },
           "permission_mode": {
             "$ref": "#/components/schemas/ChatPermissionMode"
           },
@@ -7935,6 +7938,15 @@
         },
         "additionalProperties": false
       },
+      "ChatReasoningEffort": {
+        "type": "string",
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "description": "ChatUI per-conversation thinking level for this request. Mapped to each provider's own setting; omit to use the provider configuration."
+      },
       "ChatMessageRegenerateRequest": {
         "type": "object",
         "properties": {
@@ -7947,6 +7959,9 @@
           },
           "selected_model": {
             "type": "string"
+          },
+          "reasoning_effort": {
+            "$ref": "#/components/schemas/ChatReasoningEffort"
           },
           "permission_mode": {
             "$ref": "#/components/schemas/ChatPermissionMode"
@@ -8018,6 +8033,9 @@
           },
           "selected_model": {
             "type": "string"
+          },
+          "reasoning_effort": {
+            "$ref": "#/components/schemas/ChatReasoningEffort"
           },
           "permission_mode": {
             "$ref": "#/components/schemas/ChatPermissionMode"

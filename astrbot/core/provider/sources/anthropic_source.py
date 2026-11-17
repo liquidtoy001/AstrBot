@@ -1,6 +1,7 @@
 import base64
 import builtins
 import json
+import re
 from collections.abc import AsyncGenerator
 from typing import Any, Literal
 
@@ -161,10 +162,56 @@ class ProviderAnthropic(Provider):
         )
 
     def _apply_thinking_config(self, payloads: dict) -> None:
+        """Apply configured thinking, or a per-request effort override.
+
+        Args:
+            payloads: Anthropic request payload, updated in place. An optional
+                ``_reasoning_effort`` key (low/medium/high, e.g. from the
+                ChatUI, set by ``_query``/``_query_stream``) is removed here so
+                it never reaches the API. Claude 4.6+ models (and unknown future
+                Claude names) take adaptive thinking with
+                ``output_config.effort``; Claude 4.5 and older, and non-Claude
+                Anthropic-compatible models, take a matching thinking token
+                budget.
+
+        The budgets (2048 / 8192 / 16384) are smaller than Gemini's because
+        Anthropic requires a budget of at least 1024 tokens that stays below
+        ``max_tokens``; the high level is also capped at half of the output
+        limit, and no budget is sent when no valid one fits.
+        """
+        reasoning_effort = payloads.pop("_reasoning_effort", None)
         thinking_type = self.thinking_config.get("type", "")
+        model = str(payloads.get("model", "")).lower()
+        # Budget thinking: non-Claude models, Claude 2.x/3.x/Instant, and the
+        # Claude 4.0-4.5 families (opus/sonnet/haiku-4, "4-1", "4.5", with an
+        # optional date or "-latest" suffix). Any other Claude name, including
+        # future ones, uses adaptive thinking.
+        legacy_budget_model = "claude" not in model or bool(
+            re.search(
+                r"claude-(?:[23]|instant)"
+                r"|claude-(?:opus|sonnet|haiku)-4(?:[.-][0-5])?"
+                r"(?:$|[-@](?:\d{8}|latest)$)",
+                model,
+            )
+        )
+        if reasoning_effort and not legacy_budget_model:
+            # Claude 5.x rejects budget thinking; adaptive + effort works on 4.6+.
+            thinking_type = "adaptive"
+        if reasoning_effort and thinking_type != "adaptive":
+            # Plugins may set any value in on_llm_request: unknown levels get
+            # the high budget instead of failing the request.
+            budget = {"low": 2048, "medium": 8192}.get(reasoning_effort, 16384)
+            # Budget must stay below max_tokens (set before this call).
+            max_tokens = int(payloads.get("max_tokens") or 65536)
+            if max_tokens <= 1024:
+                # No valid thinking budget fits within the requested output cap.
+                return
+            budget = min(budget, max(1024, max_tokens // 2))
+            payloads["thinking"] = {"type": "enabled", "budget_tokens": budget}
+            return
         if thinking_type == "adaptive":
             payloads["thinking"] = {"type": "adaptive"}
-            effort = self.thinking_config.get("effort", "")
+            effort = reasoning_effort or self.thinking_config.get("effort", "")
             output_cfg = dict(payloads.get("output_config", {}))
             if effort:
                 output_cfg["effort"] = effort
@@ -523,7 +570,11 @@ class ProviderAnthropic(Provider):
         *,
         request_max_retries: int | None = None,
         conversation_id: str | None = None,
+        reasoning_effort: str | None = None,
     ) -> LLMResponse:
+        if reasoning_effort:
+            # Consumed (and removed) by _apply_thinking_config.
+            payloads["_reasoning_effort"] = reasoning_effort
         if tools:
             if tool_list := tools.get_func_desc_anthropic_style():
                 payloads["tools"] = tool_list
@@ -643,7 +694,11 @@ class ProviderAnthropic(Provider):
         *,
         request_max_retries: int | None = None,
         conversation_id: str | None = None,
+        reasoning_effort: str | None = None,
     ) -> AsyncGenerator[LLMResponse, None]:
+        if reasoning_effort:
+            # Consumed (and removed) by _apply_thinking_config.
+            payloads["_reasoning_effort"] = reasoning_effort
         if tools:
             if tool_list := tools.get_func_desc_anthropic_style():
                 payloads["tools"] = tool_list
@@ -837,6 +892,7 @@ class ProviderAnthropic(Provider):
         **kwargs,
     ) -> LLMResponse:
         conversation_id = kwargs.pop("conversation_id", None)
+        reasoning_effort = kwargs.pop("reasoning_effort", None)
         if contexts is None:
             contexts = []
         new_record = None
@@ -887,6 +943,8 @@ class ProviderAnthropic(Provider):
             query_kwargs = {}
             if conversation_id:
                 query_kwargs["conversation_id"] = conversation_id
+            if reasoning_effort:
+                query_kwargs["reasoning_effort"] = reasoning_effort
             llm_response = await self._query(
                 payloads,
                 func_tool,
@@ -915,6 +973,7 @@ class ProviderAnthropic(Provider):
         **kwargs,
     ):
         conversation_id = kwargs.pop("conversation_id", None)
+        reasoning_effort = kwargs.pop("reasoning_effort", None)
         if contexts is None:
             contexts = []
         new_record = None
@@ -962,6 +1021,8 @@ class ProviderAnthropic(Provider):
         query_kwargs = {}
         if conversation_id:
             query_kwargs["conversation_id"] = conversation_id
+        if reasoning_effort:
+            query_kwargs["reasoning_effort"] = reasoning_effort
         async for llm_response in self._query_stream(
             payloads,
             func_tool,
