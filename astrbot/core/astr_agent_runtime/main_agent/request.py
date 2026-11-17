@@ -88,6 +88,7 @@ async def collect_initial_request(
             if sel_model := event.get_extra("selected_model"):
                 req.model = sel_model
             req.reasoning_effort = event.get_extra("reasoning_effort")
+            req.fast_mode = event.get_extra("fast_mode") is True
             provider_wake_prefix = config.provider_wake_prefix
             if not matches_provider_wake_prefix(event, provider_wake_prefix):
                 return None, None

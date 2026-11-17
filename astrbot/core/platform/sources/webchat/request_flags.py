@@ -21,6 +21,8 @@ WEBCHAT_CHAT_OPTIONS: dict[str, Callable[[Any], bool]] = {
     "reasoning_effort": lambda value: value in REASONING_EFFORTS,
     # Permission mode; see astrbot/core/astr_agent_runtime/permission_mode.py.
     "permission_mode": lambda value: value in PERMISSION_MODES,
+    # Fast mode (faster output at a higher price) where the provider offers it.
+    "fast_mode": lambda value: value is True,
 }
 
 

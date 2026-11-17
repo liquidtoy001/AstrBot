@@ -27,6 +27,7 @@ from astrbot.core.config.i18n_utils import ConfigMetadataI18n
 from astrbot.core.core_lifecycle import AstrBotCoreLifecycle
 from astrbot.core.db import BaseDatabase
 from astrbot.core.platform.register import platform_cls_map, platform_registry
+from astrbot.core.provider.provider import Provider
 from astrbot.core.provider.register import provider_registry
 from astrbot.core.star.star import star_registry
 from astrbot.core.utils.astrbot_path import get_astrbot_plugin_data_path
@@ -1889,6 +1890,12 @@ class ProviderConfigService:
             model_id = provider_response.get("model")
             if isinstance(model_id, str) and model_id in LLM_METADATAS:
                 model_metadata[model_id] = LLM_METADATAS[model_id]
+            # ChatUI shows its fast mode switch only where the provider offers it.
+            instance = self.provider_manager.inst_map.get(provider_response.get("id"))
+            if isinstance(instance, Provider) and instance.supports_fast_mode(
+                model_id if isinstance(model_id, str) else None
+            ):
+                provider_response["supports_fast_mode"] = True
             providers.append(provider_response)
         return {"providers": providers, "model_metadata": model_metadata}
 

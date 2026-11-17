@@ -73,6 +73,11 @@ export type ChatChunkUploadRequest = {
 };
 
 /**
+ * ChatUI per-conversation fast mode for this request (faster output at a higher price). Applied only when the selected provider supports it (see `supports_fast_mode` in the provider list); otherwise ignored.
+ */
+export type ChatFastMode = boolean;
+
+/**
  * Per-request ChatUI feature flags. A value here takes priority over its legacy top-level field, followed by the documented default.
  */
 export type ChatFlags = {
@@ -109,6 +114,7 @@ export type ChatMessageRegenerateRequest = {
     selected_model?: string;
     reasoning_effort?: ChatReasoningEffort;
     permission_mode?: ChatPermissionMode;
+    fast_mode?: ChatFastMode;
     /**
      * Deprecated compatibility field. It is used only when flags.enable_streaming is absent; otherwise flags.enable_streaming takes priority.
      * @deprecated
@@ -171,6 +177,7 @@ export type ChatRequest = {
     selected_model?: string;
     reasoning_effort?: ChatReasoningEffort;
     permission_mode?: ChatPermissionMode;
+    fast_mode?: ChatFastMode;
     /**
      * Deprecated compatibility field. It is used only when flags.enable_streaming is absent; otherwise flags.enable_streaming takes priority.
      * @deprecated
@@ -219,6 +226,7 @@ export type ChatThreadMessageRequest = {
     selected_model?: string;
     reasoning_effort?: ChatReasoningEffort;
     permission_mode?: ChatPermissionMode;
+    fast_mode?: ChatFastMode;
     /**
      * Deprecated compatibility field. It is used only when flags.enable_streaming is absent; otherwise flags.enable_streaming takes priority.
      * @deprecated

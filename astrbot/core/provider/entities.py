@@ -231,6 +231,14 @@ class ProviderRequest:
     thinking budget on older models) and Gemini a thinking level or budget.
     Plugins can read and change it in ``on_llm_request``.
     """
+    fast_mode: bool = False
+    """Per-request fast mode, e.g. from ChatUI: faster output at a higher price.
+
+    Only the primary provider receives it, and only when it supports fast mode
+    for the request's model (``Provider.supports_fast_mode``); each source maps
+    it to its own field, such as ``service_tier: "priority"`` or
+    ``speed: "fast"``. Plugins can read and change it in ``on_llm_request``.
+    """
 
     def __repr__(self) -> str:
         return (

@@ -87,6 +87,21 @@ class Provider(AbstractProvider):
     def get_current_key(self) -> str:
         raise NotImplementedError
 
+    def supports_fast_mode(self, model: str | None = None) -> bool:
+        """Whether this provider offers ChatUI fast mode for a model.
+
+        Fast mode asks the API for faster output at a higher price on the same
+        model. Only APIs known to accept the request field return True; the
+        dashboard shows the fast mode switch only for them.
+
+        Args:
+            model: Model of the request, or None for the configured model.
+
+        Returns:
+            True when a fast mode request would be honoured.
+        """
+        return False
+
     def get_keys(self) -> list[str]:
         """获得提供商 Key"""
         keys = self.provider_config.get("key", [""])

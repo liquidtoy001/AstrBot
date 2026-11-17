@@ -237,7 +237,7 @@ test("a thread sends the options of the conversation it belongs to", async () =>
 });
 
 for (const action of ["newChat", "deleteSession"]) {
-  test(`${action} resets the thinking level and permission mode to their defaults`, async () => {
+  test(`${action} resets the thinking level, permission mode and fast mode to their defaults`, async () => {
     const storage = memoryStorage();
     const sessions = loadSource(
       new URL("../src/composables/useSessions.ts", import.meta.url),
@@ -265,6 +265,7 @@ for (const action of ["newChat", "deleteSession"]) {
     ).useSessions();
     const reasoningEffort = ref("high");
     const permissionMode = ref("full");
+    const fastMode = ref(true);
     sessions.currSessionId.value = "old";
     const scope = effectScope();
     scope.run(() =>
@@ -278,6 +279,7 @@ for (const action of ["newChat", "deleteSession"]) {
           currSessionId: sessions.currSessionId,
           reasoningEffort,
           permissionMode,
+          fastMode,
         },
       ),
     );
@@ -286,6 +288,7 @@ for (const action of ["newChat", "deleteSession"]) {
       await nextTick();
       assert.equal(reasoningEffort.value, "");
       assert.equal(permissionMode.value, "ask");
+      assert.equal(fastMode.value, false);
     } finally {
       scope.stop();
     }

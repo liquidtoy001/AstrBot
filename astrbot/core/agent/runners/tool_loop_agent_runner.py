@@ -781,6 +781,8 @@ class ToolLoopAgentRunner(BaseAgentRunner[TContext]):
             # provider; fallbacks may be a different provider type.
             if getattr(self.req, "reasoning_effort", None):
                 payload["reasoning_effort"] = self.req.reasoning_effort
+            if self.req.fast_mode and self.provider.supports_fast_mode(self.req.model):
+                payload["fast_mode"] = True
         async for response in self._recorded_responses(
             payload, contexts=self.run_context.messages, streaming=self.streaming
         ):

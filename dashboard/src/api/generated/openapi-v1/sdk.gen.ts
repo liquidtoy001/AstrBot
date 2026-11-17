@@ -567,6 +567,7 @@ export const createProviderInSource = <ThrowOnError extends boolean = false>(opt
 
 /**
  * List providers by capability or source
+ * Chat providers that offer ChatUI fast mode for their configured model carry `supports_fast_mode: true`.
  */
 export const listProviders = <ThrowOnError extends boolean = false>(options?: OptionsLegacyParser<ListProvidersData, ThrowOnError>) => {
     return (options?.client ?? client).get<ListProvidersResponse, ListProvidersError, ThrowOnError>({
