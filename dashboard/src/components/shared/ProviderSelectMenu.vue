@@ -17,6 +17,7 @@
         >
           <span class="provider-trigger-copy">
             <span class="provider-trigger-title">{{ triggerTitle }}</span>
+            <slot name="trigger-suffix" />
           </span>
           <v-icon class="provider-trigger-chevron" size="18">
             mdi-chevron-down
@@ -26,6 +27,7 @@
 
       <v-card class="provider-menu-card" elevation="0">
         <div class="provider-menu-body">
+          <slot name="top" />
           <div class="provider-search-row">
             <v-menu
               v-if="providerSources.length > 1"
@@ -454,7 +456,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, shallowRef, watch } from "vue";
+import { computed, nextTick, onMounted, ref, shallowRef, watch } from "vue";
 import { useDisplay } from "vuetify";
 import { providerApi } from "@/api/v1";
 import AstrBotConfig from "@/components/shared/AstrBotConfig.vue";
@@ -491,6 +493,9 @@ const props = withDefaults(
     variant?: "config" | "input" | "header";
     allowEmpty?: boolean;
     multiple?: boolean;
+    // Load providers when mounted, so the selected provider's type is known
+    // before the menu is first opened (ChatUI's thinking level needs it).
+    preload?: boolean;
   }>(),
   {
     modelValue: "",
@@ -898,11 +903,15 @@ function getCurrentSelection() {
   };
 }
 
+onMounted(() => {
+  if (props.preload) void loadProviderConfigs();
+});
+
 watch(providerDrawer, (isOpen, wasOpen) => {
   if (!isOpen && wasOpen) loadProviderConfigs(true);
 });
 
-defineExpose({ getCurrentSelection });
+defineExpose({ getCurrentSelection, selectedProvider });
 </script>
 
 <style scoped>

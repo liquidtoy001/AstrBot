@@ -360,5 +360,15 @@
       "binary": "Not UTF-8 text: no preview, no undo",
       "unreadable": "Not a regular file that can be read safely (for example a link): no preview, no undo"
     }
+  },
+  "reasoningEffort": {
+    "title": "Thinking",
+    "hint": "This conversation",
+    "unsupported": "This provider type has no per-conversation control; its own setting applies",
+    "levels": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    }
   }
 }

@@ -8,6 +8,10 @@ import { getStoredDashboardUsername } from "@/utils/chatConfigBinding";
 const selectedProviderId = ref("");
 const selectedModelName = ref("");
 let syncedUser = "";
+// Thinking level of the active conversation. Chat.vue loads and saves it
+// with the conversation's options (utils/chatSessionPrefs.mjs); the model
+// menu edits it. "" for provider types without a per-request level.
+const reasoningEffort = ref("");
 
 function syncFromStorage() {
   const user = getStoredDashboardUsername();
@@ -41,5 +45,6 @@ export function useProviderModelSelection() {
     selectedModelName,
     setSelection,
     resetSelection,
+    reasoningEffort,
   };
 }

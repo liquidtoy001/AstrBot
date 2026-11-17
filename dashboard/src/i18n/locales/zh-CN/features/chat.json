@@ -360,5 +360,15 @@
       "binary": "不是 UTF-8 文本，没有预览，不能撤销",
       "unreadable": "不是可以安全读取的普通文件（例如链接）：没有预览，不能撤销"
     }
+  },
+  "reasoningEffort": {
+    "title": "思考程度",
+    "hint": "本对话生效",
+    "unsupported": "当前提供商类型不支持按对话调节，将使用提供商配置",
+    "levels": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    }
   }
 }
