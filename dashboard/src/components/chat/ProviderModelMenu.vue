@@ -6,6 +6,7 @@
     provider-type="chat_completion"
     :variant="variant"
     :allow-empty="true"
+    model-only
     preload
     @update:model-value="updateSelection"
     @select="saveSelection"

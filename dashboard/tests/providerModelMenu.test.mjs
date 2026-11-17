@@ -1,14 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { nextTick, ref } from "vue";
-import { loadSource, mountTemplate } from "./helpers/vueHarness.mjs";
+import { loadSource, mountSetup, mountTemplate } from "./helpers/vueHarness.mjs";
 
-// The real ProviderSelectMenu child feeds the selected provider's type to the
-// thinking level menu, as in the app.
-function mountMenu(selection) {
-  const requests = [];
-  const i18n = { useModuleI18n: () => ({ tm: (key) => key }) };
-  const child = loadSource(
+const i18n = { useModuleI18n: () => ({ tm: (key) => key }) };
+
+function loadProviderSelectMenu(requests) {
+  return loadSource(
     new URL("../src/components/shared/ProviderSelectMenu.vue", import.meta.url),
     {
       vuetify: { useDisplay: () => ({ height: ref(800) }) },
@@ -29,6 +27,14 @@ function mountMenu(selection) {
       },
     },
   ).default;
+}
+
+// The real ProviderSelectMenu child feeds the selected provider's type to the
+// thinking level menu, as in the app.
+function mountMenu(selection) {
+  const requests = [];
+  const childProps = {};
+  const child = loadProviderSelectMenu(requests);
   const parent = loadSource(
     new URL("../src/components/chat/ProviderModelMenu.vue", import.meta.url),
     {
@@ -36,6 +42,7 @@ function mountMenu(selection) {
         default: {
           ...child,
           render() {
+            Object.assign(childProps, this.$props);
             return this.$slots.top?.();
           },
         },
@@ -48,7 +55,7 @@ function mountMenu(selection) {
     {},
     true,
   ).default;
-  return { requests, h: mountTemplate(parent) };
+  return { requests, childProps, h: mountTemplate(parent) };
 }
 
 const PROVIDERS = [
@@ -165,5 +172,40 @@ test("fast mode is offered only where the backend marks the provider", async () 
     assert.equal(selection.fastMode.value, false, "unsupported turns it off");
   } finally {
     h.stop();
+  }
+});
+
+test("the ChatUI model button shows only the model name", async () => {
+  const selection = {
+    selectedProviderId: ref("openai"),
+    selectedModelName: ref("gpt"),
+    reasoningEffort: ref(""),
+    fastMode: ref(false),
+    setSelection() {},
+  };
+  const { childProps, h } = mountMenu(selection);
+  try {
+    assert.equal(childProps.modelOnly, true);
+  } finally {
+    h.stop();
+  }
+
+  const requests = [];
+  const menu = mountSetup(loadProviderSelectMenu(requests), {
+    modelValue: "openai",
+    fallbackModel: "gpt-saved",
+    providerType: "chat_completion",
+    variant: "header",
+    modelOnly: true,
+    preload: true,
+  });
+  try {
+    // Before the provider list arrives, the saved model name is shown.
+    assert.equal(menu.state.triggerTitle, "gpt-saved");
+    await loaded(requests);
+    assert.equal(menu.state.triggerTitle, "gpt");
+    assert.equal(menu.state.selectedProvider.id, "openai");
+  } finally {
+    menu.stop();
   }
 });
