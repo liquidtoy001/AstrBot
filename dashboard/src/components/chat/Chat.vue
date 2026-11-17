@@ -1168,8 +1168,14 @@ const {
   selectedProviderId: currentProviderId,
   selectedModelName: currentModelName,
   setSelection: setProviderSelection,
+  reasoningEffort,
 } = useProviderModelSelection();
 
+// Per-conversation thinking level, saved and loaded like the permission mode
+// below; a new conversation starts from the default level.
+watch(reasoningEffort, (effort) => {
+  writeChatSessionPref(currSessionId.value, "reasoning_effort", effort);
+});
 // Per-conversation permission mode: saved with the conversation's options as
 // soon as it changes (or on the first send of a new conversation); a new
 // conversation starts from "ask", the default, which is not stored. A change
@@ -1211,6 +1217,7 @@ watch(
 );
 watch(currSessionId, (sessionId) => {
   if (sessionId) return;
+  reasoningEffort.value = "";
   permissionMode.value = "ask";
 });
 
@@ -1715,6 +1722,7 @@ async function selectSession(sessionId: string, pushRoute = true) {
   await messagesReady;
   if (currSessionId.value !== sessionId) return;
   const prefs = readChatSessionPrefs(sessionId);
+  reasoningEffort.value = String(prefs.reasoning_effort || "");
   permissionMode.value = ["workspace", "workspace_no_ask", "full"].includes(
     String(prefs.permission_mode),
   )
@@ -1780,6 +1788,7 @@ async function sendCurrentMessage(viewText?: string) {
     const messageId = crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
     const selection = getSelectedProviderSelection();
     writeSessionProviderSelection(sessionId, selection);
+    writeChatSessionPref(sessionId, "reasoning_effort", reasoningEffort.value);
     writeChatSessionPref(
       sessionId,
       "permission_mode",
