@@ -344,5 +344,21 @@
       "description": "Configured access; no tool asks for approval"
     },
     "saveFailed": "Could not apply the permission mode: {error}"
+  },
+  "fileChange": {
+    "changes": "Changes",
+    "line": "line {line}",
+    "truncated": "… (large change, preview truncated)",
+    "undo": "Undo this change",
+    "undoCreate": "Undo (delete created file)",
+    "confirm": "Restore this file to its content before this change?",
+    "confirmCreate": "Delete this file created by this call?",
+    "done": "Undone",
+    "reasons": {
+      "none": "No preview",
+      "too_large": "File too large (over 512 KB): no preview, no undo",
+      "binary": "Not UTF-8 text: no preview, no undo",
+      "unreadable": "Not a regular file that can be read safely (for example a link): no preview, no undo"
+    }
   }
 }

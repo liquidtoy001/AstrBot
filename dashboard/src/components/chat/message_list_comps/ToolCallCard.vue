@@ -9,6 +9,10 @@
       />
       <span class="tool-call-title">
         {{ tm("actions.toolCallUsed", { name: displayToolName }) }}
+        <span v-if="fileChange" class="file-change-stat">
+          <span class="stat-added">+{{ fileChange.added_count ?? 0 }}</span>
+          <span class="stat-removed">-{{ fileChange.removed_count ?? 0 }}</span>
+        </span>
       </span>
       <span class="tool-call-duration">{{ toolCallDuration }}</span>
       <!-- An interrupted call has no duration; it shows this instead. -->
@@ -34,6 +38,47 @@
         <code class="detail-value">
           {{ toolCall.id }}
         </code>
+      </div>
+
+      <div v-if="fileChange" class="tool-call-detail-row">
+        <span class="detail-label">{{ tm("fileChange.changes") }}</span>
+        <code class="detail-value">{{ fileChange.path }}</code>
+        <pre
+          v-if="fileChange.removed || fileChange.added"
+          class="detail-value detail-json file-change-diff"
+        ><span class="diff-meta">@@ {{ tm("fileChange.line", { line: fileChange.start_line }) }}</span>
+<span
+  v-for="(line, i) in fileChange.removed"
+  :key="'r' + i"
+  class="diff-removed"
+>- {{ line }}
+</span><span
+  v-for="(line, i) in fileChange.added"
+  :key="'a' + i"
+  class="diff-added"
+>+ {{ line }}
+</span><span v-if="fileChange.truncated" class="diff-meta">{{ tm("fileChange.truncated") }}</span></pre>
+        <span v-else class="file-change-note">{{
+          tm(`fileChange.reasons.${fileChange.reason || "none"}`)
+        }}</span>
+        <div v-if="fileChange.undoable" class="file-change-actions">
+          <v-btn
+            v-if="!undoState.done"
+            size="small"
+            variant="tonal"
+            :loading="undoState.busy"
+            @click="undoFileChange"
+          >
+            {{
+              fileChange.created
+                ? tm("fileChange.undoCreate")
+                : tm("fileChange.undo")
+            }}
+          </v-btn>
+          <span v-if="undoState.message" class="file-change-note">{{
+            undoState.message
+          }}</span>
+        </div>
       </div>
 
       <div class="tool-call-detail-row">
@@ -67,6 +112,8 @@ import {
   Wrench,
 } from "@lucide/vue";
 import { useModuleI18n } from "@/i18n/composables";
+import { chatApi } from "@/api/v1";
+import { askForConfirmation, useConfirmDialog } from "@/utils/confirmDialog";
 
 const props = defineProps({
   toolCall: {
@@ -84,6 +131,74 @@ const props = defineProps({
 });
 
 const { tm } = useModuleI18n("features/chat");
+const confirmDialog = useConfirmDialog();
+
+// File write/edit preview and single-file undo (see backend file_undo.py).
+const UNDONE_STORAGE_KEY = "chat.undoneFileChanges";
+const fileChange = computed(() => props.toolCall.file_change || null);
+
+function readUndoneIds() {
+  try {
+    const ids = JSON.parse(localStorage.getItem(UNDONE_STORAGE_KEY) || "[]");
+    return Array.isArray(ids) ? ids : [];
+  } catch {
+    return [];
+  }
+}
+
+// Undo state per change, so a card reused for another change starts fresh
+// and a pending confirmation or request never updates the wrong change.
+const undoStates = ref({});
+const confirmingIds = new Set();
+function undoStateOf(id) {
+  return (
+    undoStates.value[id] || {
+      busy: false,
+      done: readUndoneIds().includes(id),
+      message: "",
+    }
+  );
+}
+function setUndoState(id, patch) {
+  undoStates.value = {
+    ...undoStates.value,
+    [id]: { ...undoStateOf(id), ...patch },
+  };
+}
+const undoState = computed(() => undoStateOf(fileChange.value?.change_id));
+
+async function undoFileChange() {
+  const change = fileChange.value;
+  const id = change?.change_id;
+  if (!id || undoStateOf(id).busy || confirmingIds.has(id)) return;
+  const question = change.created
+    ? tm("fileChange.confirmCreate")
+    : tm("fileChange.confirm");
+  confirmingIds.add(id);
+  try {
+    if (!(await askForConfirmation(question, confirmDialog))) return;
+    // The card may show another change by now: never undo the old one.
+    if (fileChange.value?.change_id !== id) return;
+    setUndoState(id, { busy: true });
+    await chatApi.undoFileChange(id);
+    change.undone = true;
+    setUndoState(id, { done: true, message: tm("fileChange.done") });
+    try {
+      const ids = [...readUndoneIds(), id].slice(-300);
+      localStorage.setItem(UNDONE_STORAGE_KEY, JSON.stringify(ids));
+    } catch {
+      // Persistence is only a display hint; the backend refuses repeats.
+    }
+  } catch (error) {
+    // The backend answers 409 with the reason when it refuses the undo.
+    setUndoState(id, {
+      message: error?.response?.data?.message || error?.message || String(error),
+    });
+  } finally {
+    confirmingIds.delete(id);
+    if (undoStateOf(id).busy) setUndoState(id, { busy: false });
+  }
+}
 const isExpanded = ref(props.initialExpanded);
 const currentTime = ref(Date.now() / 1000);
 let timer = null;
@@ -310,6 +425,44 @@ onUnmounted(() => {
 .detail-result {
   max-height: 300px;
   background-color: transparent;
+}
+
+.file-change-stat {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.stat-added,
+.diff-added {
+  color: rgb(var(--v-theme-success));
+}
+
+.stat-removed,
+.diff-removed {
+  color: rgb(var(--v-theme-error));
+}
+
+.stat-removed {
+  margin-left: 4px;
+}
+
+.file-change-diff {
+  margin-top: 4px;
+  max-height: 320px;
+}
+
+.diff-meta,
+.file-change-note {
+  font-size: 12px;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+}
+
+.file-change-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
 }
 
 .animate-fade-in {
