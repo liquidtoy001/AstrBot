@@ -88,11 +88,13 @@
 
 ### ChatUI session panel / ChatUI 会话面板
 
-- ChatUI 新增 **会话** 侧边面板（点击顶栏右侧的 **会话** 按钮打开；它和工作台共用右侧区域，同一时间只显示一个）：当前对话的模型、上下文分项、累计用量和缓存命中、压缩次数和改动过的文件。
-- Add a **Session** side panel to ChatUI (open it with the **Session** button at the right of the top bar; it and the workbench share the right side, one at a time): the conversation's model, context breakdown, total usage and cache hits, compaction count, and changed files.
+- ChatUI 新增 **会话** 侧边面板（点击顶栏右侧的 **会话** 按钮打开；它和工作台共用右侧区域，同一时间只显示一个）：当前对话的模型、配置文件、人格、上下文分项、累计用量和缓存命中、压缩次数和改动过的文件。
+- Add a **Session** side panel to ChatUI (open it with the **Session** button at the right of the top bar; it and the workbench share the right side, one at a time): the conversation's model, config profile, persona, context breakdown, total usage and cache hits, compaction count, and changed files.
 - 会话面板可为当前对话设置更早的自动压缩阈值（窗口的 50%/40%/30%，不低于 8192 token 和窗口的 20% 中较大者，与其他按对话选项一起保存，随请求以 `compact_threshold` 发送），并可 **压缩会话** 立即总结较早上下文；回复进行中会被拒绝。
 - The Session panel sets an earlier auto-compact threshold for the current conversation (50%/40%/30% of the window, never below the larger of 8192 tokens and 20% of the window, stored with the other per-conversation options and sent as `compact_threshold`) and can **Compact conversation** right away; it is refused while a reply runs.
 - 工具卡片标题写出运行的命令或改动的文件，运行详情中思考块的标题分别统计命令、文件和子代理。
 - Tool cards name the command run or the file changed, and thinking block titles in the run details count commands, files, and sub-agents separately.
-- 新增接口 `POST /api/v1/chat/sessions/{session_id}/compact`，只允许会话本人访问。每轮的 `agent_stats` 新增 `context_breakdown` 和 `compactions`。
-- Add `POST /api/v1/chat/sessions/{session_id}/compact`, limited to the session's owner. Each turn's `agent_stats` gains `context_breakdown` and `compactions`.
+- ChatUI **设置 → 智能体**：修改当前对话所用配置文件的人格、上下文管理策略和使用电脑能力几组设置；**单独建一份** 为 ChatUI 创建专用配置文件。
+- ChatUI **Settings → Agent**: edit the Persona, Context Management Strategy, and Agent Computer Use groups of the conversation's config profile; **Create ChatUI profile** gives ChatUI its own profile.
+- 新增接口 `POST /api/v1/chat/sessions/{session_id}/compact`、`GET .../settings`、`PUT .../persona`，只允许会话本人访问。每轮的 `agent_stats` 新增 `context_breakdown` 和 `compactions`。
+- Add `POST /api/v1/chat/sessions/{session_id}/compact`, `GET .../settings`, and `PUT .../persona`, limited to the session's owner. Each turn's `agent_stats` gains `context_breakdown` and `compactions`.
