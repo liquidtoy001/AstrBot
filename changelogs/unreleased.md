@@ -41,6 +41,8 @@
 
 ### ChatUI polish / ChatUI 小改进
 
+- ChatUI 报错卡片新增四种：API 密钥被拒、找不到模型、模型需要改用 OpenAI Responses 提供商类型才能调用工具（三者都带「配置模型」按钮），以及频率限制或额度用尽。依赖模型请求失败时的稳定错误代码。
+- ChatUI error cards add four cases: a rejected API key, a model that is not found, a model that needs the OpenAI Responses provider type for tool calls (each with a **Configure models** button), and a rate limit or quota. They rely on the stable error codes of failed model requests.
 - 模型选择器新增按对话的快速模式开关（输出更快、价格更高）：官方 OpenAI、xAI、OpenRouter 接口发送 `service_tier: "priority"`，官方 Anthropic 接口上的 Claude Opus 5.5、Fable 5.2、Mythos 5.2 发送 `speed: "fast"`。是否支持由后端判断，提供商列表中支持的条目带 `supports_fast_mode: true`；聊天请求新增 `fast_mode`，`ProviderRequest.fast_mode` 可供插件读写。
 - Add a per-conversation fast mode switch to the model selector (faster output at a higher price): `service_tier: "priority"` on the official OpenAI, xAI and OpenRouter APIs, and `speed: "fast"` for Claude Opus 5.5, Fable 5.2 and Mythos 5.2 on the official Anthropic API. The backend decides support; supported entries in the provider list carry `supports_fast_mode: true`. Chat requests accept `fast_mode`, and `ProviderRequest.fast_mode` is available to plugins.
 - ChatUI 的模型按钮只显示模型名，不再带提供商前缀；悬停显示完整的提供商 ID。
