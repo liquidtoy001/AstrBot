@@ -257,6 +257,7 @@
     "failed": "Save failed: {error}",
     "loadFailed": "Failed to load: {error}",
     "needs2fa": "This change needs two-factor verification; save it on the full config page",
+    "subagentPage": "Manage specialized agents",
     "open": "Open full config page"
   },
   "toolSummary": {
@@ -311,6 +312,53 @@
     },
     "changes": {
       "title": "File changes"
+    },
+    "subagents": {
+      "title": "Sub-agents",
+      "activity": {
+        "queued": "queued",
+        "thinking": "thinking",
+        "code": "running code",
+        "command": "running a command",
+        "edit": "editing files",
+        "view": "reading files",
+        "computer": "using the computer",
+        "search": "searching",
+        "tool": "using a tool",
+        "done": "done",
+        "stopped": "stopped",
+        "failed": "not finished"
+      },
+      "thinkingLevels": {
+        "low": "low",
+        "medium": "medium",
+        "high": "high"
+      },
+      "empty": "No sub-agents in this conversation yet. Ask the model to delegate a task to create one.",
+      "disabled": "Sub-agents are off. Turn them on in Config → AI → Capabilities → Subagents.",
+      "states": {
+        "pending": "Queued",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed",
+        "cancelled": "Stopped",
+        "timed_out": "Timed out",
+        "interrupted": "Interrupted"
+      },
+      "steps": "{count} steps",
+      "usage": "Total usage: input {input} (cached {cached}) · output {output}",
+      "usagePartial": "some requests unreported, actual usage is higher",
+      "usageUnknown": "Usage not reported",
+      "more": "{count} more sub-agents",
+      "less": "Show less",
+      "persona": "persona {name}",
+      "context": "context {tokens}",
+      "task": "Task: ",
+      "result": "Result: ",
+      "tools": "Tools: ",
+      "cancel": "Stop",
+      "cancelConfirm": "Stop sub-agent \"{name}\"? Queued instructions are cancelled too; the model can still send it new ones later.",
+      "note": "Usage is the provider-reported total; context is the sub-agent's latest request."
     }
   },
   "refs": {

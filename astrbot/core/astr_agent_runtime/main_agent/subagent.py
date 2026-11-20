@@ -107,6 +107,20 @@ async def apply_subagents(
             req.func_tool.add_tool(tool)
 
     if req.func_tool.get_tool("spawn_agent") is not None:
+        # Name each agent's model so the main agent can match a request such
+        # as "use model X", and list the providers it may pass as provider_id.
+        providers = {
+            provider.provider_config["id"]: provider.get_model()
+            for provider in context.get_all_providers()
+        }
+        current = event.get_extra("selected_provider")
+        if not isinstance(current, str) or not current:
+            try:
+                current = await context.get_current_chat_provider_id(
+                    event.unified_msg_origin
+                )
+            except Exception:
+                current = ""
         configurations = []
         for config_id in config.get("config_ids", []):
             agent_config = await runtime.agent_configs.get(config_id)
@@ -118,21 +132,36 @@ async def apply_subagents(
                     f"runtime {agent_config.runtime!r} is unavailable"
                 )
                 continue
-            configurations.append(
-                {
-                    "config_id": agent_config.config_id,
-                    "name": agent_config.name,
-                    "description": agent_config.description,
-                    "runtime": agent_config.runtime,
-                }
-            )
+            entry = {
+                "config_id": agent_config.config_id,
+                "name": agent_config.name,
+                "description": agent_config.description,
+                "runtime": agent_config.runtime,
+            }
+            if agent_config.runtime == "astrbot":
+                provider_id = (
+                    agent_config.config.get("model", {}).get("provider_id") or current
+                )
+                entry["provider_id"] = provider_id
+                entry["model"] = providers.get(provider_id, "")
+            configurations.append(entry)
+        chat_providers = [
+            {"provider_id": provider_id, "model": model}
+            for provider_id, model in providers.items()
+        ]
         req.system_prompt += (
             "\n<subagent_instructions>\n"
             "Delegate self-contained tasks with spawn_agent. Workers do not inherit "
             "your chat history. Choose a config_id from the catalog, or omit config_id "
-            "for a generic native worker. Each agent configuration selects its own runtime and configuration.\n"
+            "for a generic native worker. Each agent configuration selects its own runtime and configuration; "
+            "AstrBot agents show the chat provider and model they run on. A generic worker runs on "
+            f"your current chat provider ({current or 'default'}). When the user asks for a specific "
+            "model, use the catalog agent on that provider, or else pass its provider_id from "
+            "chat_providers (an agent config is then created for it); do not only name the agent after it.\n"
             f"<agent_configs>\n{escape(json.dumps(configurations, ensure_ascii=False), quote=False)}\n"
-            "</agent_configs>\n</subagent_instructions>\n"
+            "</agent_configs>\n"
+            f"<chat_providers>\n{escape(json.dumps(chat_providers, ensure_ascii=False), quote=False)}\n"
+            "</chat_providers>\n</subagent_instructions>\n"
         )
 
     return True

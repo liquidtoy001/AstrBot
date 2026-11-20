@@ -61,6 +61,10 @@ class TaskRecord:
     completed_steps: int = 0
     delivery: DeliveryStage = DeliveryStage.PENDING
     send_to_user: bool = True
+    usage: dict | None = None
+    """Cumulative provider-reported tokens of this input, with a ``complete`` flag."""
+    current_tool: str | None = None
+    """Tool being executed right now, while the input runs."""
 
     @property
     def finished(self) -> bool:
@@ -95,6 +99,25 @@ class AgentRecord:
             ),
         )
 
+    def total_usage(self) -> dict | None:
+        """Sum the reported usage of every input of this agent.
+
+        Returns:
+            Input, output and cached input tokens, ``complete`` when every
+            executed input reported full usage, or None when nothing was reported.
+        """
+        reported = [turn.usage for turn in self.turns if turn.usage]
+        if not reported:
+            return None
+        total = {
+            key: sum(usage.get(key) or 0 for usage in reported)
+            for key in ("input_tokens", "output_tokens", "cached_input_tokens")
+        }
+        total["complete"] = all(usage.get("complete") for usage in reported) and all(
+            turn.usage for turn in self.turns if turn.started_at is not None
+        )
+        return total
+
     def describe(self, turn: TaskRecord | None = None, *, result: bool = False) -> dict:
         """Build runtime-independent metadata for tools and the dashboard.
 
@@ -121,6 +144,9 @@ class AgentRecord:
             "started_at": turn.started_at,
             "finished_at": turn.finished_at,
             "completed_steps": turn.completed_steps,
+            "current_tool": turn.current_tool,
+            "usage": turn.usage,
+            "total_usage": self.total_usage(),
             "updated_at": turn.finished_at or turn.started_at or turn.created_at,
         }
         if result:

@@ -887,6 +887,18 @@ export const chatApi = {
       openApiV1.undoChatFileChange({ path: { change_id: changeId } }),
     );
   },
+  listSubagents(sessionId: string) {
+    return typed<any>(
+      openApiV1.listChatSubagents({ path: { session_id: sessionId } }),
+    );
+  },
+  cancelSubagent(sessionId: string, agentId: string) {
+    return typed<any>(
+      openApiV1.cancelChatSubagent({
+        path: { session_id: sessionId, agent_id: agentId },
+      }),
+    );
+  },
   compactSession(sessionId: string) {
     return typed<{ before: number; after: number }>(
       openApiV1.compactChatSession({ path: { session_id: sessionId } }),

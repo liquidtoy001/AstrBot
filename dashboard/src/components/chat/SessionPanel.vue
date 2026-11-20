@@ -226,15 +226,17 @@
           </template>
         </section>
 
+        <SessionSubagents :session-id="sessionId" :running="running" />
   </div>
 </template>
 
 <script setup lang="ts">
 // The workbench's session view: this conversation's model, config profile,
-// persona, context and changed files.
+// persona, context, changed files and sub-agents.
 import { computed, ref, watch } from "vue";
 import { chatApi } from "@/api/v1";
 import StyledMenu from "@/components/shared/StyledMenu.vue";
+import SessionSubagents from "@/components/chat/SessionSubagents.vue";
 import type { ChatRecord } from "@/composables/useMessages";
 import { useModuleI18n } from "@/i18n/composables";
 import { formatTokenCount } from "@/utils/providerMetadata";
@@ -530,7 +532,7 @@ watch(
 </script>
 
 <style>
-/* Shared by the panel's sections. */
+/* Shared by the panel's sections, including SessionSubagents. */
 .session-panel .so-section {
   display: flex;
   flex-direction: column;

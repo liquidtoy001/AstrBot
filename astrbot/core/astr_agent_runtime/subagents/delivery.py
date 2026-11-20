@@ -218,6 +218,11 @@ class AgentResultDelivery:
                     await active.result()
                     continue
                 event = self._wakeup_event(scope, parent, prompt)
+                # Platforms can relate the reply to the agents it answers.
+                event.set_extra(
+                    "_subagent_result_agents",
+                    list(dict.fromkeys(agent.agent_id for agent, _ in records)),
+                )
                 await context.get_event_queue().put(event)
                 queued = True
                 return

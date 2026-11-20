@@ -11,6 +11,12 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from astrbot import logger
+from astrbot.core.agent.events import (
+    RequestFinished,
+    ToolFinished,
+    ToolStarted,
+    UsageUpdated,
+)
 from astrbot.core.agent.input import parse_input_content
 from astrbot.core.agent.runtime import (
     AgentPermissions,
@@ -404,16 +410,35 @@ class SubAgentService:
             Current result and cancellation status.
         """
         caller = self._caller(context)
-        agent = self.store.get(agent_id, caller.scope)
+        return await self._cancel(self.store.get(agent_id, caller.scope))
+
+    async def cancel_owned(self, scope: AgentScope, agent_id: str) -> dict:
+        """Cancel an agent on behalf of a user of its owning conversation.
+
+        Used by the dashboard, which has no main execution context.
+
+        Args:
+            scope: Owning UMO and main conversation.
+            agent_id: Public agent ID.
+
+        Returns:
+            Current result and cancellation status.
+
+        Raises:
+            ValueError: If the agent does not belong to the scope.
+        """
+        return await self._cancel(self.store.get(agent_id, scope))
+
+    async def _cancel(self, agent: AgentRecord) -> dict:
         handle = self._turn_handles.get(agent.agent_id)
         if handle is not None:
             await handle.cancel()
-        task = self._workers.get(agent_id)
+        task = self._workers.get(agent.agent_id)
         if task is not None:
             active_event_registry.cancel_background_task(task)
             await asyncio.gather(task, return_exceptions=True)
-            if self._workers.get(agent_id) is task:
-                self._workers.pop(agent_id)
+            if self._workers.get(agent.agent_id) is task:
+                self._workers.pop(agent.agent_id)
         self._stop_pending(agent, AgentState.CANCELLED, "Cancelled by caller")
         await self.store.save(agent)
         self.delivery.schedule(agent.scope)
@@ -539,11 +564,18 @@ class SubAgentService:
                 )
             )
             self._turn_handles[agent.agent_id] = handle
+            tracker = asyncio.create_task(self._track(agent, turn, handle))
             try:
                 result = await handle.result()
                 if result.metrics.steps is not None:
                     turn.completed_steps = result.metrics.steps
-                    await self.store.save(agent)
+                if result.usage.source != "unknown":
+                    turn.usage = {
+                        **result.usage.tokens.model_dump(),
+                        "complete": result.usage.complete,
+                    }
+                turn.current_tool = None
+                await self.store.save(agent)
                 if result.status == TurnStatus.CANCELLED:
                     raise asyncio.CancelledError()
                 if result.status == TurnStatus.FAILED:
@@ -557,8 +589,37 @@ class SubAgentService:
                 await handle.cancel()
                 raise
             finally:
+                tracker.cancel()
+                await asyncio.gather(tracker, return_exceptions=True)
+                turn.current_tool = None
                 if self._turn_handles.get(agent.agent_id) is handle:
                     self._turn_handles.pop(agent.agent_id)
+
+    async def _track(self, agent: AgentRecord, turn: TaskRecord, handle) -> None:
+        """Mirror live tool activity and cumulative usage onto the input record.
+
+        Args:
+            agent: Session owning the input.
+            turn: Input being executed.
+            handle: Runtime turn publishing the execution events.
+        """
+        async for event in handle.events():
+            payload = event.payload
+            if isinstance(payload, RequestFinished):
+                # Live step count; the turn result replaces it when it settles.
+                turn.completed_steps += 1
+            elif isinstance(payload, ToolStarted):
+                turn.current_tool = payload.name
+            elif isinstance(payload, ToolFinished):
+                turn.current_tool = None
+            elif (
+                isinstance(payload, UsageUpdated) and payload.usage.source != "unknown"
+            ):
+                # Kept in memory for the live panel; persisted with the turn.
+                turn.usage = {
+                    **payload.usage.tokens.model_dump(),
+                    "complete": payload.usage.complete,
+                }
 
     async def _drive(self, agent: AgentRecord, caller: AgentCaller) -> None:
         """Own all execution transitions and route every outcome through one exit path.

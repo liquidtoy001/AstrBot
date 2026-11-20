@@ -537,6 +537,29 @@ async def stop_chat_session(
     return await _run(lambda: service.stop_session(auth.username, session_id))
 
 
+@router.get("/chat/sessions/{session_id}/subagents")
+async def list_chat_subagents(
+    session_id: str,
+    auth: AuthContext = Depends(require_chat_scope),
+    service: ChatService = Depends(get_service),
+):
+    """List the sub-agents of the caller's own conversation, newest first."""
+    return await _run(lambda: service.list_subagents(auth.username, session_id))
+
+
+@router.post("/chat/sessions/{session_id}/subagents/{agent_id}/cancel")
+async def cancel_chat_subagent(
+    session_id: str,
+    agent_id: str,
+    auth: AuthContext = Depends(require_chat_scope),
+    service: ChatService = Depends(get_service),
+):
+    """Stop one sub-agent of the caller's own conversation; its session is kept."""
+    return await _run(
+        lambda: service.cancel_subagent(auth.username, session_id, agent_id)
+    )
+
+
 @router.post("/chat/sessions/{session_id}/compact")
 async def compact_chat_session(
     session_id: str,

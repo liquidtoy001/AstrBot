@@ -44,7 +44,7 @@ from astrbot.core.platform.sources.webchat.request_flags import (
     resolve_webchat_request_flags,
 )
 from astrbot.core.platform.sources.webchat.webchat_queue_mgr import webchat_queue_mgr
-from astrbot.core.provider.entities import ProviderType
+from astrbot.core.provider.entities import REASONING_EFFORTS, ProviderType
 from astrbot.core.session_overrides import get_overrides
 from astrbot.core.utils.active_event_registry import active_event_registry
 from astrbot.core.utils.astrbot_path import (
@@ -1554,6 +1554,98 @@ class ChatService:
         umo = build_webchat_unified_msg_origin(session)
         manager = self.core_lifecycle.conversation_manager
         return AgentScope(umo, await manager.get_curr_conversation_id(umo) or "")
+
+    async def list_subagents(self, username: str, session_id: str) -> dict:
+        """List the sub-agent sessions owned by a ChatUI conversation.
+
+        Combines the persisted agent record (state, task, usage, result) with
+        the native runtime's private conversation (provider, tools, latest
+        context usage) when it exists.
+
+        Args:
+            username: Dashboard user; must own the session.
+            session_id: ChatUI session ID.
+
+        Returns:
+            Whether sub-agents are enabled, their limits, the agents newest
+            first, and the server clock for elapsed-time display.
+        """
+        scope = await self._owned_scope(username, session_id)
+        core = self.core_lifecycle
+        conf = core.astrbot_config_mgr.get_conf(scope.umo)
+        policy = conf.get("agent", {}).get("config", {}).get("subagents", {})
+        config_names = {c.config_id: c.name for c in await core.agent_configs.list()}
+        agents = []
+        for agent in core.subagents.store.list(scope):
+            item = agent.describe(result=True)
+            config = agent.options.get("config", {})
+            item.update(
+                config_id=agent.options.get("config_id"),
+                config_name=config_names.get(agent.options.get("config_id")),
+                persona_id=config.get("persona", {}).get("persona_id") or None,
+                provider_id=config.get("model", {}).get("provider_id") or None,
+                turns=len(agent.turns),
+            )
+            # One primary-key read per sub-agent of this conversation; the batch
+            # query cannot filter by key and would load every user's sessions.
+            row = await self.db.get_preference(
+                "subagent_native", "conversation", agent.conversation_id
+            )
+            native = row.value if row is not None else {}
+            if native.get("umo") == scope.umo:
+                item.update(
+                    provider_id=native.get("provider_id") or item["provider_id"],
+                    tools=native.get("tools"),
+                    instructions=str(native.get("instructions") or "")[:300],
+                    context_tokens=native.get("token_usage") or 0,
+                )
+            provider = core.provider_manager.inst_map.get(item["provider_id"] or "")
+            item["model"] = provider.get_model() if provider else None
+            # Thinking level only when the sub-agent's provider config states one.
+            provider_config = provider.provider_config if provider else {}
+            thinking = provider_config.get("anth_thinking_config") or {}
+            extra = provider_config.get("custom_extra_body") or {}
+            reasoning = extra.get("reasoning")
+            effort = (
+                (thinking.get("effort") if thinking.get("type") == "adaptive" else None)
+                or extra.get("reasoning_effort")
+                or (reasoning.get("effort") if isinstance(reasoning, dict) else None)
+            )
+            item["thinking"] = effort if effort in REASONING_EFFORTS else None
+            for key in ("task", "result", "error"):
+                if isinstance(item.get(key), str):
+                    item[key] = item[key][:500]
+            agents.append(item)
+        agents.sort(key=lambda item: item["created_at"], reverse=True)
+        return {
+            "enabled": bool(policy.get("enabled")),
+            "max_concurrent": policy.get("max_concurrent_agents"),
+            "task_timeout": policy.get("task_timeout"),
+            "agents": agents,
+            "server_time": time.time(),
+        }
+
+    async def cancel_subagent(
+        self, username: str, session_id: str, agent_id: str
+    ) -> dict:
+        """Stop a sub-agent of a ChatUI conversation; its session stays reusable.
+
+        Args:
+            username: Dashboard user; must own the session.
+            session_id: ChatUI session ID.
+            agent_id: Public agent ID.
+
+        Returns:
+            The agent's state after cancellation.
+
+        Raises:
+            ChatServiceError: If the agent is unknown for this conversation.
+        """
+        scope = await self._owned_scope(username, session_id)
+        try:
+            return await self.core_lifecycle.subagents.cancel_owned(scope, agent_id)
+        except ValueError as exc:
+            raise ChatServiceError(str(exc)) from exc
 
     async def get_session_settings(self, username: str, session_id: str) -> dict:
         """Return the config profile and persona state of a ChatUI conversation.

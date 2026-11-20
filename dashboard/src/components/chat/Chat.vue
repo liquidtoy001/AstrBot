@@ -703,6 +703,7 @@ import ChatUILogo from "@/components/chat/ChatUILogo.vue";
 import type { RegenerateModelSelection } from "@/components/chat/RegenerateMenu.vue";
 import ChatLoadError from "@/components/chat/ChatLoadError.vue";
 import SessionPanel from "@/components/chat/SessionPanel.vue";
+import { useSessionSubagentsPolling } from "@/composables/useSessionSubagents";
 import ThreadPanel from "@/components/chat/ThreadPanel.vue";
 import ChatWorkbench from "@/components/chat/ChatWorkbench.vue";
 import { workbenchChatKey } from "@/utils/chatViews";
@@ -987,6 +988,14 @@ const {
     }
   },
 });
+
+// Poll the conversation's sub-agents once for the panel and reply chips.
+useSessionSubagentsPolling(
+  computed(() => currSessionId.value || null),
+  computed(() =>
+    Boolean(currSessionId.value && isSessionRunning(currSessionId.value)),
+  ),
+);
 
 function handleButtonClick(payload: {
   message: ChatRecord;

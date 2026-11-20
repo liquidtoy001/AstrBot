@@ -121,6 +121,13 @@
               <v-btn
                 variant="text"
                 prepend-icon="mdi-open-in-new"
+                @click="openPage('/subagent')"
+              >
+                {{ tm("agentSettings.subagentPage") }}
+              </v-btn>
+              <v-btn
+                variant="text"
+                prepend-icon="mdi-open-in-new"
                 @click="openPage('/config')"
               >
                 {{ tm("agentSettings.open") }}
@@ -298,6 +305,7 @@ const transportOptions = computed(() => [
 const AGENT_SECTIONS = [
   "persona",
   "truncate_and_compress",
+  "subagents",
   "agent_computer_use",
 ];
 // Route that sends every ChatUI session to one profile (see UmopConfigRouter).

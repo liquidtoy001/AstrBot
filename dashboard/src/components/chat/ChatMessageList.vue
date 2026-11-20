@@ -9,12 +9,16 @@
         v-for="(msg, msgIndex) in messages"
         :key="msg.id || `${msgIndex}-${msg.created_at || ''}`"
         class="message-row"
-        :class="isUserMessage(msg) ? 'from-user' : 'from-bot'"
+        :class="[
+          isUserMessage(msg) ? 'from-user' : 'from-bot',
+          { 'subagent-followup': followUpRoots.has(msgIndex) },
+        ]"
         :data-message-id="msg.id == null ? undefined : String(msg.id)"
       >
         <v-avatar
           v-if="!isUserMessage(msg)"
           class="bot-avatar"
+          :class="{ 'bot-avatar--hidden': followUpRoots.has(msgIndex) }"
           :size="avatarSize"
         >
           <ChatUILogo
@@ -357,7 +361,26 @@
             </MessageContentTransition>
           </div>
 
-          <div v-if="showMessageMeta(msg, msgIndex)" class="message-meta">
+          <!-- A grouped bubble shows its chips and action row once, at the end. -->
+          <SubagentChips
+            v-if="
+              variant === 'main' &&
+              !isUserMessage(msg) &&
+              !followUpRoots.has(msgIndex + 1)
+            "
+            :agent-ids="
+              groupRecords(msgIndex).flatMap((record) =>
+                spawnedAgentIds(record.content?.message),
+              )
+            "
+          />
+
+          <div
+            v-if="
+              showMessageMeta(msg, msgIndex) && !followUpRoots.has(msgIndex + 1)
+            "
+            class="message-meta"
+          >
             <span v-if="isUserMessage(msg) && msg.created_at">{{
               formatTime(msg.created_at)
             }}</span>
@@ -393,20 +416,24 @@
                 <SquarePen :size="14" :stroke-width="2" />
               </v-btn>
             </span>
+            <!-- Regenerating a grouped bubble reruns the turn that started it. -->
             <RegenerateMenu
-              v-if="canRegenerateMessage(msg, msgIndex)"
-              :disabled="msg.can_retry === false"
+              v-if="canRegenerateMessage(groupRecords(msgIndex)[0], msgIndex)"
+              :disabled="groupRecords(msgIndex)[0].can_retry === false"
               :unavailable-reason="
-                msg.can_retry === false
+                groupRecords(msgIndex)[0].can_retry === false
                   ? tm(
                       `history.${
-                        msg.retry_unavailable_reason || 'context_unavailable'
+                        groupRecords(msgIndex)[0].retry_unavailable_reason ||
+                        'context_unavailable'
                       }`,
                     )
                   : ''
               "
-              @retry="emit('regenerate', msg)"
-              @retry-with-model="emit('regenerateWithModel', msg, $event)"
+              @retry="emit('regenerate', groupRecords(msgIndex)[0])"
+              @retry-with-model="
+                emit('regenerateWithModel', groupRecords(msgIndex)[0], $event)
+              "
             />
             <v-btn
               v-if="enableCopy"
@@ -414,7 +441,7 @@
               size="x-small"
               variant="text"
               :aria-label="tm('messageActions.copy.title')"
-              @click="copyMessage(msg)"
+              @click="copyMessage(msgIndex)"
             >
               <Copy :size="14" :stroke-width="2" />
               <ActionTooltip
@@ -476,7 +503,7 @@
               </v-card>
             </v-menu>
             <StyledMenu
-              v-if="messageThreads(msg).length"
+              v-if="groupRecords(msgIndex).flatMap(messageThreads).length"
               location="bottom"
               transition="none"
               no-border
@@ -489,12 +516,16 @@
                 >
                   <v-icon size="14">mdi-source-branch</v-icon>
                   <span>{{
-                    threadCountLabel(messageThreads(msg).length)
+                    threadCountLabel(
+                      groupRecords(msgIndex).flatMap(messageThreads).length,
+                    )
                   }}</span>
                 </button>
               </template>
               <v-list-item
-                v-for="thread in messageThreads(msg)"
+                v-for="thread in groupRecords(msgIndex).flatMap(
+                  messageThreads,
+                )"
                 :key="thread.thread_id"
                 class="styled-menu-item thread-menu-item"
                 rounded="md"
@@ -508,9 +539,12 @@
                 </v-list-item-title>
               </v-list-item>
             </StyledMenu>
-            <div v-if="messageRefs(msg).length" class="message-meta-refs">
+            <div
+              v-if="groupRecords(msgIndex).flatMap(messageRefs).length"
+              class="message-meta-refs"
+            >
               <ActionRef
-                :refs="resolvedMessageRefs(msg)"
+                :refs="{ used: groupRecords(msgIndex).flatMap(messageRefs) }"
                 @open-refs="handleOpenRefs"
               />
             </div>
@@ -591,6 +625,11 @@ import type {
 import { useI18n, useModuleI18n } from "@/i18n/composables";
 import { copyToClipboard } from "@/utils/clipboard";
 import ChatUILogo from "@/components/chat/ChatUILogo.vue";
+import SubagentChips from "@/components/chat/message_list_comps/SubagentChips.vue";
+import {
+  spawnedAgentIds,
+  subagentFollowUpRoots,
+} from "@/composables/useSessionSubagents";
 
 const props = withDefaults(
   defineProps<{
@@ -693,6 +732,18 @@ function shouldShowMessageBubble(message: ChatRecord) {
     isEditingMessage(message) ||
     messageContent(message).isLoading ||
     bubbleParts(message).length > 0
+  );
+}
+
+// Replies to delivered sub-agent results, by index, mapped to the reply that
+// started those sub-agents; records stay separate and render as one bubble.
+const followUpRoots = computed(() => subagentFollowUpRoots(props.messages));
+
+/** Records of the bubble that ends at this index (one unless grouped). */
+function groupRecords(messageIndex: number) {
+  return props.messages.slice(
+    followUpRoots.value.get(messageIndex) ?? messageIndex,
+    messageIndex + 1,
   );
 }
 
@@ -900,8 +951,11 @@ function toolCallStatusText(tool: Record<string, unknown>) {
   return tm("toolStatus.running");
 }
 
-async function copyMessage(message: ChatRecord) {
-  const text = plainTextFromMessage(message);
+async function copyMessage(messageIndex: number) {
+  const text = groupRecords(messageIndex)
+    .map(plainTextFromMessage)
+    .filter(Boolean)
+    .join("\n\n");
   if (!text) return;
   await copyToClipboard(text);
 }
@@ -1167,6 +1221,15 @@ function formatDuration(seconds: number) {
   margin-top: 2px;
   color: rgb(var(--v-theme-primary));
   user-select: none;
+}
+
+.bot-avatar--hidden {
+  visibility: hidden;
+}
+
+/* Cancel the list gap so a sub-agent follow-up reads as part of the bubble. */
+.message-row.subagent-followup {
+  margin-top: -22px;
 }
 
 .bot-avatar-logo {
