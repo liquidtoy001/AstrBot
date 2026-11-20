@@ -313,3 +313,123 @@ async def test_shutdown_during_session_creation_never_starts_work(environment):
     assert not env.store.agents
     assert not env.service._workers
     assert all(handle._closed for handle in env.memory.handles.values())
+
+
+@pytest.mark.asyncio
+async def test_cancel_owned_stops_running_agent_within_its_scope(environment):
+    env = environment
+    env.memory.release = asyncio.Event()
+    reply = await env.service.spawn(
+        env.root, [{"type": "plain", "text": "Initial"}], runtime="memory"
+    )
+    await asyncio.wait_for(env.memory.started.get(), 1)
+    with pytest.raises(ValueError, match="Unknown subagent"):
+        await env.service.cancel_owned(
+            replace(env.scope, conversation_id="other"), reply["agent_id"]
+        )
+    result = await env.service.cancel_owned(env.scope, reply["agent_id"])
+    assert result["state"] == AgentState.CANCELLED.value
+    assert result["cancel_requested"] is True
+    env.memory.release.set()
+
+
+@pytest.mark.asyncio
+async def test_agent_records_live_tool_and_cumulative_usage(environment, monkeypatch):
+    import sys
+
+    from astrbot.core.agent.events import (
+        ExecutionMetrics,
+        RuntimeTokenUsage,
+        ToolStarted,
+        TurnResult,
+        TurnUsage,
+        UsageUpdated,
+    )
+
+    env = environment
+    tool_seen = asyncio.Event()
+    finish = asyncio.Event()
+
+    async def execute_turn(self, turn):
+        turn.emit(
+            ToolStarted(
+                execution_id="e1", call_id="c1", name="web_search", arguments={}
+            )
+        )
+        usage = TurnUsage(
+            source="requests",
+            complete=True,
+            tokens=RuntimeTokenUsage(
+                input_tokens=100, output_tokens=20, cached_input_tokens=40
+            ),
+        )
+        turn.emit(UsageUpdated(usage=usage, metrics=ExecutionMetrics()))
+        tool_seen.set()
+        await finish.wait()
+        return TurnResult(usage=usage, metrics=ExecutionMetrics(steps=2))
+
+    # The runtime's session class lives in this package's conftest module.
+    memory_session = sys.modules[type(env.memory).__module__].MemorySession
+    monkeypatch.setattr(memory_session, "execute_turn", execute_turn)
+    reply = await env.service.spawn(
+        env.root, [{"type": "plain", "text": "Search"}], runtime="memory"
+    )
+    await asyncio.wait_for(tool_seen.wait(), 1)
+    # The panel reads the live record; usage is persisted when the turn ends.
+    for _ in range(100):
+        running = env.store.get(reply["agent_id"], env.scope).describe()
+        if (running.get("usage") or {}).get("input_tokens") == 100:
+            break
+        await asyncio.sleep(0.01)
+    assert running["current_tool"] == "web_search"
+    assert running["usage"]["input_tokens"] == 100
+    finish.set()
+    await env.service.wait(env.root, [reply["agent_id"]], 2000, "all")
+    await env.service.send(
+        env.root, reply["agent_id"], [{"type": "plain", "text": "Again"}]
+    )
+    finish.set()
+    await env.service.wait(env.root, [reply["agent_id"]], 2000, "all")
+    done = env.store.get(reply["agent_id"], env.scope).describe()
+    assert done["current_tool"] is None
+    assert done["completed_steps"] == 2
+    assert done["total_usage"] == {
+        "input_tokens": 200,
+        "output_tokens": 40,
+        "cached_input_tokens": 80,
+        "complete": True,
+    }
+
+
+@pytest.mark.asyncio
+async def test_failed_execution_joins_its_tracker(environment, monkeypatch):
+    import sys
+
+    env = environment
+    tracking = asyncio.Event()
+    joined = asyncio.Event()
+    original_track = env.service._track
+
+    async def observe_track(*args):
+        tracking.set()
+        try:
+            await original_track(*args)
+        finally:
+            joined.set()
+
+    async def fail(self, turn):
+        await tracking.wait()
+        raise RuntimeError("offline execution failure")
+
+    memory_session = sys.modules[type(env.memory).__module__].MemorySession
+    monkeypatch.setattr(memory_session, "execute_turn", fail)
+    monkeypatch.setattr(env.service, "_track", observe_track)
+    reply = await env.service.spawn(
+        env.root, [{"type": "plain", "text": "fail"}], runtime="memory"
+    )
+    await env.service.wait(env.root, [reply["agent_id"]], 2000, "all")
+    assert joined.is_set()
+    assert (
+        env.store.get(reply["agent_id"], env.scope).turns[-1].state == AgentState.FAILED
+    )
+    assert reply["agent_id"] not in env.service._turn_handles

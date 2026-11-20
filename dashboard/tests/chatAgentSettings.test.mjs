@@ -22,7 +22,7 @@ function mountDialog({ routing = {}, configId = "default" } = {}) {
           get: async (id) =>
             ok({
               config: { agent: { config: { subagents: { enabled: false } } } },
-              metadata: { ai_group: { metadata: { agent_computer_use: { items: {} }, other: {} } } },
+              metadata: { ai_group: { metadata: { subagents: { items: {} }, other: {} } } },
             }),
           update: async (id, config) => (calls.push(["update", id, config]), ok({})),
           create: async (body) => (calls.push(["create", body.name]), ok({ conf_id: "chatui" })),
@@ -63,7 +63,7 @@ for (const [label, routing, configId, shared] of [
     // Only the configured sections the metadata actually has are rendered.
     assert.deepEqual(
       JSON.parse(JSON.stringify(dialog.state.agentSections.map((section) => section.key))),
-      ["agent_computer_use"],
+      ["subagents"],
     );
     dialog.stop();
   });

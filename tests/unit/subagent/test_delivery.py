@@ -105,6 +105,7 @@ async def test_unconsumed_steering_queues_results_for_the_same_parent(
     event = env.context.get_event_queue().get_nowait()
     assert event.agent_session == AgentSessionRef("astrbot", env.scope.conversation_id)
     assert "Result body" in event.message_str
+    assert event.get_extra("_subagent_result_agents") == [agent["agent_id"]]
     assert event.get_sender_id() == env.event.get_sender_id()
     assert event.unified_msg_origin == env.scope.umo
     assert env.store.get(agent["agent_id"], env.scope).current.delivery == "pending"
