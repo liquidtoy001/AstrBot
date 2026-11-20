@@ -217,6 +217,10 @@ export type ChatSessionPatchRequest = {
     display_name?: string;
 };
 
+export type ChatSessionPersonaRequest = {
+    persona_id: string;
+};
+
 export type ChatThreadCreateRequest = {
     session_id: string;
     parent_message_id: (string | number);
@@ -1655,6 +1659,27 @@ export type CompactChatSessionData = {
 export type CompactChatSessionResponse = (SuccessEnvelope);
 
 export type CompactChatSessionError = unknown;
+
+export type GetChatSessionSettingsData = {
+    path: {
+        session_id: string;
+    };
+};
+
+export type GetChatSessionSettingsResponse = (SuccessEnvelope);
+
+export type GetChatSessionSettingsError = unknown;
+
+export type SetChatSessionPersonaData = {
+    body: ChatSessionPersonaRequest;
+    path: {
+        session_id: string;
+    };
+};
+
+export type SetChatSessionPersonaResponse = (SuccessEnvelope);
+
+export type SetChatSessionPersonaError = unknown;
 
 export type ResumeChatRunData = {
     path: {

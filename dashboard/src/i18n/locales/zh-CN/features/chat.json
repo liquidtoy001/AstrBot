@@ -243,6 +243,22 @@
   "tokenUsage": {
     "tooltip": "{used} / {limit} tokens（{percent}%）"
   },
+  "agentSettings": {
+    "title": "智能体",
+    "hint": "这些是本对话所用配置文件的设置，使用同一配置文件的机器人平台也会受影响。",
+    "hintOwn": "这些设置属于 ChatUI 专用配置文件，不影响机器人平台。",
+    "profile": "配置文件：{name}",
+    "ownTitle": "与机器人平台分开",
+    "ownHint": "复制当前配置为一份「ChatUI」配置文件，之后所有 ChatUI 对话都用它（单独选过配置文件的对话除外），这里的改动不再影响机器人。",
+    "ownAction": "单独建一份",
+    "ownDone": "已为 ChatUI 建立独立配置",
+    "save": "保存",
+    "saved": "已保存",
+    "failed": "保存失败：{error}",
+    "loadFailed": "读取失败：{error}",
+    "needs2fa": "这项修改需要二次验证，请在完整配置页保存",
+    "open": "打开完整配置页"
+  },
   "toolSummary": {
     "run": "运行了",
     "runPython": "运行了 Python",
@@ -260,7 +276,12 @@
     "session": {
       "title": "本对话",
       "model": "模型",
-      "newChat": "发送第一条消息后可以切换本对话的人格。"
+      "config": "配置文件",
+      "persona": "人格",
+      "defaultPersona": "默认（{name}）",
+      "noPersona": "不使用人格",
+      "newChat": "发送第一条消息后可以切换本对话的人格。",
+      "saveFailed": "保存失败：{error}"
     },
     "context": {
       "title": "上下文",

@@ -243,6 +243,22 @@
   "tokenUsage": {
     "tooltip": "{used} / {limit} tokens ({percent}%)"
   },
+  "agentSettings": {
+    "title": "Agent",
+    "hint": "Settings of the config profile this conversation uses; bot platforms on the same profile use them too.",
+    "hintOwn": "Settings of the ChatUI-only config profile; they do not affect bot platforms.",
+    "profile": "Config profile: {name}",
+    "ownTitle": "Separate from bot platforms",
+    "ownHint": "Copy the current config into a \"ChatUI\" profile and route all ChatUI conversations to it (except ones with an explicitly chosen profile), so changes here no longer affect bots.",
+    "ownAction": "Create ChatUI profile",
+    "ownDone": "ChatUI now has its own profile",
+    "save": "Save",
+    "saved": "Saved",
+    "failed": "Save failed: {error}",
+    "loadFailed": "Failed to load: {error}",
+    "needs2fa": "This change needs two-factor verification; save it on the full config page",
+    "open": "Open full config page"
+  },
   "toolSummary": {
     "run": "Ran",
     "runPython": "Ran Python",
@@ -260,7 +276,12 @@
     "session": {
       "title": "This conversation",
       "model": "Model",
-      "newChat": "Send the first message to switch the persona of this conversation."
+      "config": "Config profile",
+      "persona": "Persona",
+      "defaultPersona": "Default ({name})",
+      "noPersona": "No persona",
+      "newChat": "Send the first message to switch the persona of this conversation.",
+      "saveFailed": "Save failed: {error}"
     },
     "context": {
       "title": "Context",

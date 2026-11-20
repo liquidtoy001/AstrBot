@@ -170,6 +170,8 @@ outline: deep
 | `PATCH` | `/api/v1/chat/sessions/{session_id}/messages/{message_id}` | — |
 | `POST` | `/api/v1/chat/sessions/{session_id}/messages/{message_id}/regenerate` | — |
 | `PUT` | `/api/v1/chat/sessions/{session_id}/permission-mode` | — |
+| `PUT` | `/api/v1/chat/sessions/{session_id}/persona` | — |
+| `GET` | `/api/v1/chat/sessions/{session_id}/settings` | — |
 | `POST` | `/api/v1/chat/sessions/{session_id}/stop` | — |
 | `POST` | `/api/v1/chat/threads` | — |
 | `GET` | `/api/v1/chat/threads/{thread_id}` | — |

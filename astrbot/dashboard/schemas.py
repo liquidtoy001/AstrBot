@@ -142,6 +142,10 @@ class ChatSessionPatchRequest(OpenModel):
     display_name: str | None = None
 
 
+class ChatSessionPersonaRequest(OpenModel):
+    persona_id: str
+
+
 class ChatMessagePatchRequest(OpenModel):
     content: dict[str, Any]
 

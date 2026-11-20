@@ -45,6 +45,7 @@ from astrbot.core.platform.sources.webchat.request_flags import (
 )
 from astrbot.core.platform.sources.webchat.webchat_queue_mgr import webchat_queue_mgr
 from astrbot.core.provider.entities import ProviderType
+from astrbot.core.session_overrides import get_overrides
 from astrbot.core.utils.active_event_registry import active_event_registry
 from astrbot.core.utils.astrbot_path import (
     get_astrbot_data_path,
@@ -1553,6 +1554,82 @@ class ChatService:
         umo = build_webchat_unified_msg_origin(session)
         manager = self.core_lifecycle.conversation_manager
         return AgentScope(umo, await manager.get_curr_conversation_id(umo) or "")
+
+    async def get_session_settings(self, username: str, session_id: str) -> dict:
+        """Return the config profile and persona state of a ChatUI conversation.
+
+        Args:
+            username: Dashboard user; must own the session.
+            session_id: ChatUI session ID.
+
+        Returns:
+            Config profile id and name, the provider used when ChatUI sends no
+            explicit model, and the persona chosen for this conversation
+            (``None`` follows the profile default, ``"[%None]"`` disables it),
+            the profile default, and available persona names.
+        """
+        scope = await self._owned_scope(username, session_id)
+        core = self.core_lifecycle
+        info = core.astrbot_config_mgr.get_conf_info(scope.umo)
+        agent = core.astrbot_config_mgr.confs[info["id"]].get("agent", {})
+        config = agent.get("config", {})
+        native = agent.get("runtime") == "astrbot"
+        persona_path = (
+            "agent.config.persona.persona_id" if native else "agent.config.persona_id"
+        )
+        provider = await core.provider_manager.get_using_provider_async(
+            ProviderType.CHAT_COMPLETION, scope.umo
+        )
+        return {
+            "config_id": info.get("id"),
+            "config_name": info.get("name"),
+            "chat_provider": {
+                "id": provider.provider_config.get("id"),
+                "model": provider.get_model(),
+            }
+            if provider
+            else None,
+            "persona": {
+                "conversation": (await get_overrides(scope.umo)).get(persona_path),
+                "default": (config.get("persona", {}) if native else config).get(
+                    "persona_id", "default"
+                ),
+                "options": [p["name"] for p in core.persona_mgr.personas_v3],
+            },
+        }
+
+    async def set_session_persona(
+        self, username: str, session_id: str, persona_id: str
+    ) -> dict:
+        """Set the persona of a ChatUI conversation (its session override).
+
+        Args:
+            username: Dashboard user; must own the session.
+            session_id: ChatUI session ID.
+            persona_id: An existing persona name, or ``"[%None]"`` for none.
+
+        Returns:
+            The updated session settings.
+
+        Raises:
+            ChatServiceError: If the persona is unknown.
+        """
+        scope = await self._owned_scope(username, session_id)
+        core = self.core_lifecycle
+        if persona_id != "[%None]" and persona_id not in {
+            p["name"] for p in core.persona_mgr.personas_v3
+        }:
+            raise ChatServiceError("Unknown persona")
+        manager = core.conversation_manager
+        conversation_id = scope.conversation_id or await manager.new_conversation(
+            scope.umo, platform_id="webchat"
+        )
+        # Updating the conversation writes the session override that request
+        # handling reads, also for a conversation created just now.
+        await manager.update_conversation(
+            scope.umo, conversation_id, persona_id=persona_id
+        )
+        return await self.get_session_settings(username, session_id)
 
     async def compact_session(self, username: str, session_id: str) -> dict:
         """Summarize the earlier history of a ChatUI conversation right away.

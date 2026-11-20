@@ -23,6 +23,7 @@ from astrbot.dashboard.schemas import (
     ChatPermissionModeRequest,
     ChatSessionBatchDeleteRequest,
     ChatSessionPatchRequest,
+    ChatSessionPersonaRequest,
     ChatThreadCreateRequest,
     ChatThreadMessageRequest,
 )
@@ -544,6 +545,31 @@ async def compact_chat_session(
 ):
     """Summarize the earlier model context of the caller's own conversation now."""
     return await _run(lambda: service.compact_session(auth.username, session_id))
+
+
+@router.get("/chat/sessions/{session_id}/settings")
+async def get_chat_session_settings(
+    session_id: str,
+    auth: AuthContext = Depends(require_chat_scope),
+    service: ChatService = Depends(get_service),
+):
+    """Return the config profile, provider and persona of the caller's conversation."""
+    return await _run(lambda: service.get_session_settings(auth.username, session_id))
+
+
+@router.put("/chat/sessions/{session_id}/persona")
+async def set_chat_session_persona(
+    session_id: str,
+    payload: ChatSessionPersonaRequest,
+    auth: AuthContext = Depends(require_chat_scope),
+    service: ChatService = Depends(get_service),
+):
+    """Set the persona session override of the caller's own conversation."""
+    return await _run(
+        lambda: service.set_session_persona(
+            auth.username, session_id, payload.persona_id
+        )
+    )
 
 
 @router.get("/chat/runs/{run_id}/stream")

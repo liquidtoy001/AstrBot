@@ -37,7 +37,11 @@
 
       <div class="settings-main">
         <v-card-title class="text-h3 pa-4 pb-0 pl-6 settings-heading">
-          {{ tm(`settings.${activeSection}`) }}
+          {{
+            activeSection === "agent"
+              ? tm("agentSettings.title")
+              : tm(`settings.${activeSection}`)
+          }}
         </v-card-title>
         <v-card-text class="settings-content">
           <div v-if="activeSection === 'general'" class="settings-list">
@@ -72,6 +76,67 @@
               />
             </div>
           </div>
+
+          <template v-else-if="activeSection === 'agent'">
+            <div class="settings-item-subtitle agent-hint">
+              {{
+                agentShared ? tm("agentSettings.hint") : tm("agentSettings.hintOwn")
+              }}
+              <template v-if="agentProfileName">
+                {{ tm("agentSettings.profile", { name: agentProfileName }) }}
+              </template>
+              <span v-if="agentStatus" :class="{ 'agent-error': agentFailed }">
+                · {{ agentStatus }}
+              </span>
+            </div>
+            <div v-if="agentConfig && agentShared" class="settings-list">
+              <div class="settings-item settings-item-switch">
+                <div>
+                  <div class="settings-item-title">
+                    {{ tm("agentSettings.ownTitle") }}
+                  </div>
+                  <div class="settings-item-subtitle">
+                    {{ tm("agentSettings.ownHint") }}
+                  </div>
+                </div>
+                <v-btn
+                  variant="tonal"
+                  :loading="agentSaving"
+                  @click="createChatUiProfile"
+                >
+                  {{ tm("agentSettings.ownAction") }}
+                </v-btn>
+              </div>
+            </div>
+            <template v-if="agentConfig">
+              <AstrBotConfigV4
+                v-for="section in agentSections"
+                :key="section.key"
+                :metadata="section.metadata"
+                :iterable="agentConfig"
+                :metadata-key="section.key"
+              />
+            </template>
+            <div class="agent-actions">
+              <v-btn
+                variant="text"
+                prepend-icon="mdi-open-in-new"
+                @click="openPage('/config')"
+              >
+                {{ tm("agentSettings.open") }}
+              </v-btn>
+              <v-btn
+                v-if="agentConfig"
+                variant="tonal"
+                color="primary"
+                :loading="agentSaving"
+                :disabled="!agentDirty"
+                @click="saveAgentSettings"
+              >
+                {{ tm("agentSettings.save") }}
+              </v-btn>
+            </div>
+          </template>
 
           <div v-else class="settings-list">
             <div class="settings-item">
@@ -170,7 +235,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+import { chatApi, configProfileApi, configRouteApi } from "@/api/v1";
+import AstrBotConfigV4 from "@/components/shared/AstrBotConfigV4.vue";
 import {
   useI18n,
   useLanguageSwitcher,
@@ -179,8 +247,9 @@ import {
 import { useCustomizerStore } from "@/stores/customizer";
 import type { TransportMode } from "@/composables/useMessages";
 
-defineProps<{
+const props = defineProps<{
   modelValue: boolean;
+  sessionId?: string | null;
   enableStreaming: boolean;
   enableReasoning: boolean;
   sendShortcut: "enter" | "shift_enter";
@@ -207,6 +276,7 @@ const activeSection = ref("general");
 const sections = computed(() => [
   { id: "general", title: tm("settings.general"), icon: "mdi-cog-outline" },
   { id: "chat", title: tm("settings.chat"), icon: "mdi-message-outline" },
+  { id: "agent", title: tm("agentSettings.title"), icon: "mdi-robot-outline" },
 ]);
 const themeOptions = computed(() => [
   { title: tm("settings.light"), value: "light" },
@@ -221,9 +291,175 @@ const transportOptions = computed(() => [
   { title: tm("transport.sse"), value: "sse" },
   { title: tm("transport.websocket"), value: "websocket" },
 ]);
+
+// Agent settings of the config profile this conversation uses, rendered with
+// the config page's own sections (same labels, hints and validation) and
+// saved through the regular config profile API.
+const AGENT_SECTIONS = [
+  "persona",
+  "truncate_and_compress",
+  "agent_computer_use",
+];
+// Route that sends every ChatUI session to one profile (see UmopConfigRouter).
+const CHATUI_ROUTE = "webchat::";
+
+const router = useRouter();
+const agentConfig = ref<Record<string, any> | null>(null);
+const agentMetadata = ref<Record<string, any> | null>(null);
+const agentSnapshot = ref("");
+const agentConfigId = ref("default");
+const agentProfileName = ref("");
+const agentShared = ref(true);
+const agentSaving = ref(false);
+const agentStatus = ref("");
+const agentFailed = ref(false);
+const agentSections = computed(() =>
+  AGENT_SECTIONS.filter((key) => agentMetadata.value?.[key]).map((key) => ({
+    key,
+    metadata: { [key]: agentMetadata.value?.[key] },
+  })),
+);
+const agentDirty = computed(
+  () => !!agentConfig.value && JSON.stringify(agentConfig.value) !== agentSnapshot.value,
+);
+
+function agentError(key: string, error: unknown) {
+  agentFailed.value = true;
+  agentStatus.value = tm(key, {
+    error: error instanceof Error ? error.message : String(error),
+  });
+}
+
+async function loadAgentSettings() {
+  agentStatus.value = "";
+  agentFailed.value = false;
+  try {
+    const routes = await configRouteApi.list();
+    const routing: Record<string, string> =
+      routes.data.status === "ok" ? routes.data.data.routing || {} : {};
+    if (props.sessionId) {
+      const settings = await chatApi.getSessionSettings(props.sessionId);
+      if (settings.data.status !== "ok") {
+        throw new Error(settings.data.message ?? undefined);
+      }
+      agentConfigId.value = settings.data.data.config_id || "default";
+      agentProfileName.value = settings.data.data.config_name || "";
+    } else {
+      // A new chat follows the ChatUI route, or the default profile.
+      agentConfigId.value = routing[CHATUI_ROUTE] || "default";
+      agentProfileName.value = agentConfigId.value;
+    }
+    // Shared when it is the default profile or a non-ChatUI route uses it.
+    agentShared.value =
+      agentConfigId.value === "default" ||
+      Object.entries(routing).some(
+        ([pattern, target]) =>
+          target === agentConfigId.value && !pattern.startsWith("webchat:"),
+      );
+    const profile = await configProfileApi.get(agentConfigId.value);
+    if (profile.data.status !== "ok") {
+      throw new Error(profile.data.message ?? undefined);
+    }
+    const data = profile.data.data as Record<string, any>;
+    agentConfig.value = data.config;
+    agentMetadata.value = data.metadata?.ai_group?.metadata || null;
+    agentSnapshot.value = JSON.stringify(data.config);
+  } catch (error) {
+    agentError("agentSettings.loadFailed", error);
+  }
+}
+
+async function saveAgentSettings() {
+  if (!agentConfig.value) return;
+  agentSaving.value = true;
+  agentStatus.value = "";
+  agentFailed.value = false;
+  try {
+    const response = await configProfileApi.update(
+      agentConfigId.value,
+      agentConfig.value,
+      {
+        validateStatus: (status) =>
+          (status >= 200 && status < 300) || status === 401,
+      },
+    );
+    if (response.status === 401) {
+      throw new Error(tm("agentSettings.needs2fa"));
+    }
+    if (response.data.status !== "ok") {
+      throw new Error(response.data.message ?? undefined);
+    }
+    agentSnapshot.value = JSON.stringify(agentConfig.value);
+    agentStatus.value = tm("agentSettings.saved");
+  } catch (error) {
+    agentError("agentSettings.failed", error);
+  } finally {
+    agentSaving.value = false;
+  }
+}
+
+// Copy the current profile into a ChatUI-only one and route all ChatUI
+// sessions to it, so these settings stop affecting bot platforms.
+async function createChatUiProfile() {
+  if (!agentConfig.value) return;
+  agentSaving.value = true;
+  agentStatus.value = "";
+  agentFailed.value = false;
+  try {
+    const created = await configProfileApi.create({
+      name: "ChatUI",
+      config: JSON.parse(agentSnapshot.value),
+    });
+    if (created.data.status !== "ok") {
+      throw new Error(created.data.message ?? undefined);
+    }
+    const route = await configRouteApi.upsert(CHATUI_ROUTE, {
+      config_id: created.data.data.conf_id,
+    });
+    if (route.data.status !== "ok") {
+      throw new Error(route.data.message ?? undefined);
+    }
+    await loadAgentSettings();
+    agentStatus.value = tm("agentSettings.ownDone");
+  } catch (error) {
+    agentError("agentSettings.failed", error);
+  } finally {
+    agentSaving.value = false;
+  }
+}
+
+watch(
+  () => [props.modelValue, activeSection.value, props.sessionId],
+  () => {
+    if (props.modelValue && activeSection.value === "agent") {
+      void loadAgentSettings();
+    }
+  },
+);
+
+function openPage(path: string) {
+  emit("update:modelValue", false);
+  void router.push(path);
+}
 </script>
 
 <style scoped>
+.agent-hint {
+  margin: 0 0 16px;
+}
+
+.agent-error {
+  color: rgb(var(--v-theme-error));
+}
+
+.agent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .chat-settings {
   --settings-border: rgba(var(--v-theme-on-surface), 0.13);
   --settings-divider: rgba(var(--v-theme-on-surface), 0.09);

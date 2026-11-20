@@ -4,9 +4,46 @@
           <div class="so-heading">{{ tm("sessionPanel.session.title") }}</div>
           <div class="so-row">
             <span class="so-label">{{ tm("sessionPanel.session.model") }}</span>
-            <span class="so-value">{{ model || "-" }}</span>
+            <span class="so-value">{{ model || chatProviderLabel || "-" }}</span>
           </div>
-          <div v-if="!sessionId" class="so-note">
+          <div v-if="settings" class="so-row">
+            <span class="so-label">{{ tm("sessionPanel.session.config") }}</span>
+            <span class="so-value">{{
+              settings.config_name || settings.config_id
+            }}</span>
+          </div>
+          <div class="so-row">
+            <span class="so-label">{{
+              tm("sessionPanel.session.persona")
+            }}</span>
+            <StyledMenu v-if="settings" location="bottom end">
+              <template #activator="{ props: menuProps }">
+                <button
+                  type="button"
+                  class="so-value so-trigger"
+                  :disabled="personaSaving"
+                  v-bind="menuProps"
+                >
+                  <span class="so-trigger-text">{{ personaLabel }}</span>
+                  <v-icon size="14">mdi-chevron-down</v-icon>
+                </button>
+              </template>
+              <v-list-item
+                v-for="option in personaOptions"
+                :key="option.value"
+                class="styled-menu-item"
+                :active="option.value === settings.persona.conversation"
+                @click="setPersona(option.value)"
+              >
+                <v-list-item-title>{{ option.title }}</v-list-item-title>
+              </v-list-item>
+            </StyledMenu>
+            <span v-else class="so-value">-</span>
+          </div>
+          <div v-if="personaError" class="so-note so-error">
+            {{ personaError }}
+          </div>
+          <div v-else-if="!sessionId" class="so-note">
             {{ tm("sessionPanel.session.newChat") }}
           </div>
         </section>
@@ -193,8 +230,8 @@
 </template>
 
 <script setup lang="ts">
-// The workbench's session view: this conversation's model, context and
-// changed files.
+// The workbench's session view: this conversation's model, config profile,
+// persona, context and changed files.
 import { computed, ref, watch } from "vue";
 import { chatApi } from "@/api/v1";
 import StyledMenu from "@/components/shared/StyledMenu.vue";
@@ -369,6 +406,38 @@ function setThreshold(value: number) {
   writeChatSessionPref(props.sessionId || "", "compact_threshold", value || null);
 }
 
+type SessionSettings = {
+  config_id: string;
+  config_name?: string;
+  chat_provider?: { id: string; model: string } | null;
+  persona: { conversation: string | null; default: string | null; options: string[] };
+};
+const settings = ref<SessionSettings | null>(null);
+const personaSaving = ref(false);
+const personaError = ref("");
+const personaOptions = computed(() => [
+  ...(settings.value?.persona.options || []).map((name) => ({
+    title: name,
+    value: name,
+  })),
+  { title: tm("sessionPanel.session.noPersona"), value: "[%None]" },
+]);
+const chatProviderLabel = computed(() => {
+  const provider = settings.value?.chat_provider;
+  return provider ? `${provider.id} / ${provider.model}` : "";
+});
+const personaLabel = computed(() => {
+  const persona = settings.value?.persona;
+  if (!persona) return "-";
+  if (persona.conversation === "[%None]") {
+    return tm("sessionPanel.session.noPersona");
+  }
+  return (
+    persona.conversation ||
+    tm("sessionPanel.session.defaultPersona", { name: persona.default || "-" })
+  );
+});
+
 const compacting = ref(false);
 const compactMessage = ref("");
 const compactFailed = ref(false);
@@ -415,6 +484,26 @@ async function compactNow() {
   }
 }
 
+async function setPersona(personaId: string) {
+  if (!props.sessionId || personaSaving.value) return;
+  const generation = sessionGeneration;
+  personaSaving.value = true;
+  personaError.value = "";
+  try {
+    const result = await request<SessionSettings>(() =>
+      chatApi.setSessionPersona(props.sessionId as string, personaId),
+    );
+    if (result) settings.value = result;
+  } catch (error) {
+    if (generation !== sessionGeneration) return;
+    personaError.value = tm("sessionPanel.session.saveFailed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  } finally {
+    if (generation === sessionGeneration) personaSaving.value = false;
+  }
+}
+
 watch(
   () => props.sessionId,
   async (sessionId) => {
@@ -422,8 +511,19 @@ watch(
     compacting.value = false;
     compactFailed.value = false;
     compactMessage.value = "";
+    personaSaving.value = false;
+    personaError.value = "";
+    settings.value = null;
     threshold.value =
       Number(readChatSessionPrefs(sessionId || "").compact_threshold) || 0;
+    if (!sessionId) return;
+    try {
+      settings.value = (await request<SessionSettings>(() =>
+        chatApi.getSessionSettings(sessionId),
+      )) ?? settings.value;
+    } catch {
+      // Leave the rows empty when the settings cannot be read.
+    }
   },
   { immediate: true },
 );
