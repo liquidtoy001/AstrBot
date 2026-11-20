@@ -279,3 +279,94 @@ async def test_streamed_messages_are_separated_unless_a_tool_call_splits_them(
     assert [
         chain.get_plain_text() for chain in chains if chain.type is None
     ] == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("platform", ["webchat", "test"])
+@pytest.mark.parametrize("estimate_fails", [False, True])
+async def test_native_context_snapshots_survive_delayed_presentation(
+    monkeypatch, platform, estimate_fails
+):
+
+    from astrbot.core.agent.context.token_counter import estimate_context_breakdown
+    from astrbot.core.agent.events import RequestFinished, RequestStarted, TurnStatus
+    from astrbot.core.agent.message import Message
+    from astrbot.core.astr_agent_runtime import execution
+
+    messages = [Message(role="user", content="hello")]
+    first_breakdown = estimate_context_breakdown(messages)
+
+    class ScriptedRunner:
+        run_context = SimpleNamespace(messages=messages, run_end_reason=None)
+        request_context_manager_config = SimpleNamespace(max_context_tokens=32000)
+        stats = SimpleNamespace(end_time=1, start_time=0, time_to_first_token=0)
+        compaction_count = 0
+        _step_budget_used = 2
+
+        def _func_tool_for_provider(self):
+            return None
+
+        def get_final_llm_resp(self):
+            return None
+
+        def done(self):
+            return False
+
+        def was_aborted(self):
+            return False
+
+        async def step_until_done(self, max_steps):
+            for index in (1, 2):
+                self.compaction_count = index
+                yield RequestStarted(
+                    request_id=str(index), model="test", streaming=False
+                )
+                yield RequestFinished(
+                    request_id=str(index),
+                    status=TurnStatus.COMPLETED,
+                    usage=RuntimeTokenUsage(input_tokens=index * 10, output_tokens=1),
+                    duration_ms=1,
+                )
+                self.run_context.messages.append(
+                    Message(role="user", content="more words " * 100)
+                )
+
+    class NativeSession(OutputSession):
+        async def execute_turn(self, turn):
+            return await execution.execute_native_loop(ScriptedRunner(), turn, 2)
+
+    if estimate_fails:
+
+        def fail(*args):
+            raise ValueError("estimation unavailable")
+
+        monkeypatch.setattr(execution, "estimate_context_breakdown", fail)
+    session = NativeSession("session", "webchat:FriendMessage:webchat!u!s")
+    agent_input = input_for(session)
+    event = agent_input.event
+    event.get_platform_name.return_value = platform
+    event.is_stopped.return_value = False
+    extras = {}
+    event.get_extra.side_effect = lambda key, default=None: extras.get(key, default)
+    event.set_extra.side_effect = extras.__setitem__
+    event.send = AsyncMock()
+    turn = await session.run_turn(agent_input)
+    assert (await turn.result()).status == TurnStatus.COMPLETED
+    # Both requests finish before the consumer reads either snapshot.
+    async for _ in present_turn(turn, streaming=False):
+        pass
+    stats = [
+        call.args[0].chain[0].data
+        for call in event.send.await_args_list
+        if call.args[0].type == "agent_stats"
+    ]
+    if platform == "webchat":
+        # Removing B5's event snapshot fix makes the first usage carry the second context.
+        assert stats[0]["compactions"] == 1
+        assert stats[0]["context_breakdown"] == (
+            None if estimate_fails else first_breakdown
+        )
+        assert stats[1]["compactions"] == 2
+    else:
+        assert not stats
+        assert "_chatui_context" not in extras
