@@ -12,6 +12,9 @@ function mountPanel(overrides = {}, api = {}, storage = new Map()) {
       "@/components/chat/chatPanelTransition.css": {},
       "@/api/v1": {
         chatApi: {
+          getSessionSettings: async () => ({
+            data: { status: "ok", data: { persona: { conversation: "new" } } },
+          }),
           ...api,
         },
       },
@@ -139,7 +142,7 @@ test("usage and compactions add up across replies; the newest breakdown wins", (
   panel.stop();
 });
 
-for (const method of ["compactNow"]) {
+for (const method of ["compactNow", "setPersona"]) {
   for (const fail of [false, true]) {
     test(`${method} ignores a stale ${fail ? "failure" : "success"}`, async () => {
       let settle;
@@ -151,11 +154,11 @@ for (const method of ["compactNow"]) {
               : resolve({
                   data: {
                     status: "ok",
-                    data: { before: 10, after: 5 },
+                    data: { before: 10, after: 5, persona: { conversation: "old" } },
                   },
                 });
         });
-      const panel = mountPanel({}, { compactSession: pending });
+      const panel = mountPanel({}, { compactSession: pending, setSessionPersona: pending });
       try {
         await new Promise((resolve) => setImmediate(resolve));
         const request = panel.state[method]("old");
@@ -164,8 +167,11 @@ for (const method of ["compactNow"]) {
         await new Promise((resolve) => setImmediate(resolve));
         settle();
         await request;
+        assert.equal(panel.state.settings.persona.conversation, "new");
         assert.equal(panel.state.compactMessage, "");
+        assert.equal(panel.state.personaError, "");
         assert.equal(panel.state.compacting, false);
+        assert.equal(panel.state.personaSaving, false);
       } finally {
         panel.stop();
       }

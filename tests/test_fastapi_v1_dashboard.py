@@ -5545,7 +5545,9 @@ async def test_v1_regenerate_rejects_unknown_reasoning_effort(
 @pytest.mark.parametrize(
     "method,suffix,payload",
     [
+        ("GET", "settings", None),
         ("POST", "compact", None),
+        ("PUT", "persona", {"persona_id": "default"}),
     ],
 )
 async def test_session_controls_require_login_and_ownership(
