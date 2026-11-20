@@ -173,6 +173,8 @@ outline: deep
 | `PUT` | `/api/v1/chat/sessions/{session_id}/persona` | — |
 | `GET` | `/api/v1/chat/sessions/{session_id}/settings` | — |
 | `POST` | `/api/v1/chat/sessions/{session_id}/stop` | — |
+| `GET` | `/api/v1/chat/sessions/{session_id}/subagents` | — |
+| `POST` | `/api/v1/chat/sessions/{session_id}/subagents/{agent_id}/cancel` | — |
 | `POST` | `/api/v1/chat/threads` | — |
 | `GET` | `/api/v1/chat/threads/{thread_id}` | — |
 | `DELETE` | `/api/v1/chat/threads/{thread_id}` | — |

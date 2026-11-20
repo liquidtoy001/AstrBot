@@ -19,7 +19,11 @@ from astrbot.core.platform import (
     Platform,
     PlatformMetadata,
 )
-from astrbot.core.platform.astr_message_event import MessageSesion
+from astrbot.core.platform.agent_wakeup_event import AgentWakeupEvent
+from astrbot.core.platform.astr_message_event import (
+    MessageSesion,
+    streaming_response_event,
+)
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 
 from ...register import register_platform_adapter
@@ -157,10 +161,19 @@ class WebChatAdapter(Platform):
         if not message_parts:
             return
 
+        content: dict[str, Any] = {"type": "bot", "message": message_parts}
+        # A reply to delivered sub-agent results records those agents, so ChatUI
+        # can show it inside the bubble of the reply that started them.
+        event = streaming_response_event.get()
+        if isinstance(event, AgentWakeupEvent) and event.get_extra("_subagent_wakeup"):
+            agent_ids = event.get_extra("_subagent_result_agents")
+            if agent_ids:
+                content["subagent_results"] = list(agent_ids)
+
         await db_helper.insert_platform_message_history(
             platform_id="webchat",
             user_id=conversation_id,
-            content={"type": "bot", "message": message_parts},
+            content=content,
             sender_id="bot",
             sender_name="bot",
         )

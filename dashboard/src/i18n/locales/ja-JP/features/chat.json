@@ -257,6 +257,7 @@
     "failed": "保存に失敗しました：{error}",
     "loadFailed": "読み込みに失敗しました：{error}",
     "needs2fa": "この変更には二段階認証が必要です。完全な設定ページで保存してください",
+    "subagentPage": "専用エージェントを管理",
     "open": "完全な設定ページを開く"
   },
   "toolSummary": {
@@ -313,6 +314,53 @@
     },
     "changes": {
       "title": "ファイルの変更"
+    },
+    "subagents": {
+      "title": "サブエージェント",
+      "activity": {
+        "queued": "待機中",
+        "thinking": "思考中",
+        "code": "コードを実行中",
+        "command": "コマンドを実行中",
+        "edit": "ファイルを編集中",
+        "view": "ファイルを確認中",
+        "computer": "コンピューターを操作中",
+        "search": "検索中",
+        "tool": "ツールを使用中",
+        "done": "完了",
+        "stopped": "停止済み",
+        "failed": "未完了"
+      },
+      "thinkingLevels": {
+        "low": "低",
+        "medium": "中",
+        "high": "高"
+      },
+      "empty": "この会話にはまだサブエージェントがありません。モデルにタスクの委任を頼むと作成されます。",
+      "disabled": "サブエージェントはオフです。設定 → AI → 機能 → サブエージェント でオンにしてください。",
+      "states": {
+        "pending": "待機中",
+        "running": "実行中",
+        "completed": "完了",
+        "failed": "失敗",
+        "cancelled": "停止済み",
+        "timed_out": "タイムアウト",
+        "interrupted": "中断"
+      },
+      "steps": "{count} ステップ",
+      "usage": "累計使用量：入力 {input}（キャッシュ {cached}）· 出力 {output}",
+      "usagePartial": "一部のリクエストは未報告のため実際はより多い",
+      "usageUnknown": "使用量は未報告",
+      "more": "ほか {count} 個のサブエージェント",
+      "less": "折りたたむ",
+      "persona": "ペルソナ {name}",
+      "context": "コンテキスト {tokens}",
+      "task": "タスク：",
+      "result": "結果：",
+      "tools": "ツール：",
+      "cancel": "停止",
+      "cancelConfirm": "サブエージェント「{name}」を停止しますか？待機中の指示も取り消されます。後でモデルから新しい指示を送れます。",
+      "note": "使用量はプロバイダー報告の累計です。コンテキストはサブエージェントの直近リクエストの値です。"
     }
   },
   "refs": {

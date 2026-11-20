@@ -5,8 +5,10 @@ from __future__ import annotations
 import asyncio
 import sys
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 from astrbot import logger
+from astrbot.core.agent.config import StoredAgentConfig
 from astrbot.core.agent.runtime import AgentInput, AgentRuntime, AgentSession, AgentTurn
 from astrbot.core.platform.agent_wakeup_event import AgentWakeupEvent
 
@@ -18,6 +20,12 @@ if TYPE_CHECKING:
     from astrbot.core.astr_agent_runtime.subagents.context import SubAgentContext
     from astrbot.core.astr_agent_runtime.subagents.service import SubAgentService
     from astrbot.core.star.context import Context
+
+
+# Description shown on agent configs created by spawn_agent(provider_id=...).
+AUTO_AGENT_CONFIG_DESCRIPTION = (
+    "Created automatically when the main agent was asked to use this model."
+)
 
 
 class AstrAgentRuntime(AgentRuntime):
@@ -79,6 +87,7 @@ class AstrAgentRuntime(AgentRuntime):
         *,
         config_id: str | None = None,
         name: str | None = None,
+        provider_id: str | None = None,
     ) -> dict:
         """Resolve this runtime's delegation policy before opening another agent.
 
@@ -87,9 +96,12 @@ class AstrAgentRuntime(AgentRuntime):
             messages: Explicit structured task input.
             config_id: Optional reusable agent selected by the parent.
             name: Optional session display name.
+            provider_id: Optional chat provider; its agent config in the
+                profile is reused or created and selected.
 
         Returns:
-            Public session identity and initial execution state.
+            Public session identity and initial execution state, plus
+            ``agent_config`` when provider_id chose the configuration.
 
         Raises:
             ValueError: If delegation, the agent_config, or its runtime is unavailable.
@@ -104,8 +116,39 @@ class AstrAgentRuntime(AgentRuntime):
             raise ValueError("Subagents are disabled for this configuration profile")
         selected_runtime = "astrbot"
         selected_config = self.normalize_config({}, delegated=True)
+        # Models that fill every optional field send blanks for unused ones,
+        # and some put a provider ID into config_id.
+        config_id = (config_id or "").strip() or None
+        provider_id = (provider_id or "").strip() or None
+        name = (name or "").strip() or None
+        if config_id is not None and config_id not in policy.get("config_ids", []):
+            if provider_id is not None:
+                config_id = None
+            elif config_id in {
+                provider.provider_config["id"]
+                for provider in self.context.get_all_providers()
+            }:
+                config_id, provider_id = None, config_id
+        if config_id is not None and provider_id is not None:
+            agent_config = await self.agent_configs.get(config_id)
+            configured = agent_config.config.get("model", {}).get("provider_id")
+            if configured != provider_id:
+                raise ValueError(
+                    f"Agent configuration {config_id} does not run on {provider_id}. "
+                    f"Send only config_id={config_id} to use that agent, or only "
+                    f"provider_id={provider_id} (config_id empty) to run on that provider."
+                )
+            provider_id = None
+        chosen = None
+        if provider_id is not None:
+            chosen = await self._agent_config_for_provider(
+                context.event.unified_msg_origin, provider_id
+            )
+            config_id = chosen[0].config_id
         if config_id is not None:
-            if config_id not in policy.get("config_ids", []):
+            # A config chosen by provider_id was just selected in the stored
+            # profile; this message still reads the earlier snapshot.
+            if chosen is None and config_id not in policy.get("config_ids", []):
                 raise ValueError(
                     f"Agent configuration is not selected by this profile: {config_id}"
                 )
@@ -121,7 +164,7 @@ class AstrAgentRuntime(AgentRuntime):
         if runtime is None:
             raise ValueError(f"Agent runtime unavailable: {selected_runtime}")
         selected_config = runtime.normalize_config(selected_config, delegated=True)
-        return await self.subagents.spawn(
+        result = await self.subagents.spawn(
             context,
             messages,
             runtime=selected_runtime,
@@ -129,6 +172,86 @@ class AstrAgentRuntime(AgentRuntime):
             config_id=config_id,
             name=name,
         )
+        if chosen is not None:
+            # Tell the main agent, so it can tell the user, what was set up.
+            result["agent_config"] = {
+                "config_id": chosen[0].config_id,
+                "name": chosen[0].name,
+                "created": chosen[1],
+            }
+        return result
+
+    async def _agent_config_for_provider(
+        self, umo: str, provider_id: str
+    ) -> tuple[StoredAgentConfig, bool]:
+        """Find or create the agent config that runs on a chat provider.
+
+        Reuses an enabled AstrBot config without its own persona that uses this
+        provider, preferring one the profile already selects; otherwise creates
+        one. The result is selected in the session's
+        stored profile. The store lock keeps concurrent spawns to one config.
+
+        Args:
+            umo: Session whose routed profile receives the selection.
+            provider_id: Loaded chat provider the agent should run on.
+
+        Returns:
+            The configuration and whether it was created now.
+
+        Raises:
+            ValueError: If the provider is not a loaded chat provider.
+        """
+        providers = {
+            provider.provider_config["id"]: provider
+            for provider in self.context.get_all_providers()
+        }
+        if provider_id not in providers:
+            raise ValueError(
+                f"Unknown or unavailable chat provider: {provider_id}. Available chat provider IDs: {list(providers)}"
+            )
+        manager = self.context.astrbot_config_mgr
+        profile = (
+            manager.confs.get(manager.get_conf_info(umo)["id"]) or manager.default_conf
+        )
+        async with self.agent_configs.lock:
+            selected = (
+                profile.setdefault("agent", {})
+                .setdefault("config", {})
+                .setdefault("subagents", {})
+                .setdefault("config_ids", [])
+            )
+            matching = [
+                item
+                for item in await self.agent_configs.list()
+                if item.enabled
+                and item.runtime == "astrbot"
+                and item.config.get("model", {}).get("provider_id") == provider_id
+                and not item.config.get("persona", {}).get("persona_id")
+            ]
+            # Any plain config on this provider will do; prefer one the profile
+            # already selects, so no duplicate is created.
+            agent_config = next(
+                (item for item in matching if item.config_id in selected),
+                matching[0] if matching else None,
+            )
+            created = agent_config is None
+            if agent_config is None:
+                model = providers[provider_id].get_model() or provider_id
+                agent_config = await self.agent_configs.save(
+                    StoredAgentConfig(
+                        config_id=str(uuid4()),
+                        name=f"{model.rsplit('/', 1)[-1]} worker"[:128],
+                        description=AUTO_AGENT_CONFIG_DESCRIPTION,
+                        runtime="astrbot",
+                        config=self.normalize_config(
+                            {"model": {"provider_id": provider_id}}, delegated=True
+                        ),
+                    )
+                )
+            if agent_config.config_id not in selected:
+                selected.append(agent_config.config_id)
+                await profile.save_config_async()
+        return agent_config, created
 
     async def initialize(self) -> None:
         """Initialize native execution environments before plugins can use them."""

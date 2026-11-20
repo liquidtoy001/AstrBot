@@ -69,6 +69,8 @@ export interface ChatContent {
   isLoading?: boolean;
   agentStats?: any;
   refs?: any;
+  // Sub-agents whose delivered results this reply answers.
+  subagentResults?: string[];
 }
 
 export interface MessageDisplayBlock {
@@ -891,6 +893,7 @@ export function useMessages(options: UseMessagesOptions) {
       ),
       agentStats: content.agentStats || content.agent_stats,
       refs: content.refs,
+      subagentResults: content.subagent_results,
     };
 
     return {

@@ -2038,6 +2038,56 @@
         }
       }
     },
+    "/api/v1/chat/sessions/{session_id}/subagents": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "List sub-agents of a ChatUI conversation",
+        "operationId": "listChatSubagents",
+        "x-astrbot-scope": "chat",
+        "description": "Sub-agent sessions owned by the current conversation of this ChatUI\nsession, newest first: state, task, result, steps, current tool,\nreported token usage, provider, model, persona, tools and the latest\ncontext usage of each, plus the server clock for elapsed times.\n\n**Required scope:** `chat`",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SessionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/v1/chat/sessions/{session_id}/subagents/{agent_id}/cancel": {
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Stop a sub-agent of a ChatUI conversation",
+        "operationId": "cancelChatSubagent",
+        "x-astrbot-scope": "chat",
+        "description": "Cancels the running and queued inputs of one sub-agent. Its session is\nkept, so the main agent can send it new instructions later.\n\n**Required scope:** `chat`",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SessionId"
+          },
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
     "/api/v1/chat/sessions/{session_id}/compact": {
       "post": {
         "tags": [

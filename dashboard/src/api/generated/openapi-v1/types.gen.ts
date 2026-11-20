@@ -1650,6 +1650,27 @@ export type UndoChatFileChangeResponse = (SuccessEnvelope);
 
 export type UndoChatFileChangeError = (unknown);
 
+export type ListChatSubagentsData = {
+    path: {
+        session_id: string;
+    };
+};
+
+export type ListChatSubagentsResponse = (SuccessEnvelope);
+
+export type ListChatSubagentsError = unknown;
+
+export type CancelChatSubagentData = {
+    path: {
+        agent_id: string;
+        session_id: string;
+    };
+};
+
+export type CancelChatSubagentResponse = (SuccessEnvelope);
+
+export type CancelChatSubagentError = unknown;
+
 export type CompactChatSessionData = {
     path: {
         session_id: string;

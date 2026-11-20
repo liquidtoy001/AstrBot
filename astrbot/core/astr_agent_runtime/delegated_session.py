@@ -189,8 +189,13 @@ class DelegatedAgentSession(NativeAgentSession):
                 if isinstance(tools, list)
                 else []
             )
-        provider_id = provider_id or await caller.context.get_current_chat_provider_id(
-            caller.scope.umo
+        # Without a configured provider, use the one the spawning request ran on
+        # (such as the model picked in ChatUI), else the session default.
+        selected_provider = caller.event.get_extra("selected_provider")
+        provider_id = (
+            provider_id
+            or (selected_provider if isinstance(selected_provider, str) else "")
+            or await caller.context.get_current_chat_provider_id(caller.scope.umo)
         )
         config["model"]["provider_id"] = provider_id
         available = [

@@ -121,6 +121,13 @@
               <v-btn
                 variant="text"
                 prepend-icon="mdi-open-in-new"
+                @click="openPage('/subagent')"
+              >
+                {{ tm("agentSettings.subagentPage") }}
+              </v-btn>
+              <v-btn
+                variant="text"
+                prepend-icon="mdi-open-in-new"
                 @click="openPage('/config')"
               >
                 {{ tm("agentSettings.open") }}

@@ -257,6 +257,7 @@
     "failed": "保存失败：{error}",
     "loadFailed": "读取失败：{error}",
     "needs2fa": "这项修改需要二次验证，请在完整配置页保存",
+    "subagentPage": "管理专用 Agent",
     "open": "打开完整配置页"
   },
   "toolSummary": {
@@ -313,6 +314,53 @@
     },
     "changes": {
       "title": "文件改动"
+    },
+    "subagents": {
+      "title": "子代理",
+      "activity": {
+        "queued": "排队中",
+        "thinking": "正在思考",
+        "code": "正在运行代码",
+        "command": "正在执行命令",
+        "edit": "正在编辑文件",
+        "view": "正在查看文件",
+        "computer": "正在操控电脑",
+        "search": "正在搜索",
+        "tool": "正在调用工具",
+        "done": "已完成",
+        "stopped": "已停止",
+        "failed": "未完成"
+      },
+      "thinkingLevels": {
+        "low": "低",
+        "medium": "中",
+        "high": "高"
+      },
+      "empty": "本对话还没有子代理。让模型「交给子代理去做」即可创建。",
+      "disabled": "子代理未开启：在 配置文件 → AI → 能力 → 子代理 中打开。",
+      "states": {
+        "pending": "排队中",
+        "running": "运行中",
+        "completed": "已完成",
+        "failed": "失败",
+        "cancelled": "已停止",
+        "timed_out": "超时",
+        "interrupted": "已中断"
+      },
+      "steps": "{count} 步",
+      "usage": "累计用量：输入 {input}（缓存 {cached}）· 输出 {output}",
+      "usagePartial": "部分请求未上报，实际更多",
+      "usageUnknown": "用量未上报",
+      "more": "还有 {count} 个子代理",
+      "less": "收起",
+      "persona": "人格 {name}",
+      "context": "上下文 {tokens}",
+      "task": "任务：",
+      "result": "结果：",
+      "tools": "可用工具：",
+      "cancel": "停止",
+      "cancelConfirm": "停止子代理「{name}」？已排队的指令也会取消，之后仍可让模型继续给它发指令。",
+      "note": "用量为服务商上报的累计值；上下文为子代理最近一次请求的占用。"
     }
   },
   "refs": {

@@ -58,6 +58,9 @@ class SpawnAgentTool(FunctionTool):
                 "Open an agent session and return agent_id while the task runs asynchronously. "
                 "Provide a self-contained task and explicit attachments in messages. "
                 "Choose config_id from the system catalog or omit it for a generic native worker. "
+                "When the user asks for a model no catalog agent uses, set provider_id (from the "
+                "catalog's chat_providers) instead of config_id: an agent config for that model is "
+                "reused or created and selected in this profile; tell the user when the result says created. "
                 "Use wait_agent for results, send_message for follow-ups, and cancel_agent to stop work."
             ),
             parameters={
@@ -66,13 +69,15 @@ class SpawnAgentTool(FunctionTool):
                     "messages": copy.deepcopy(SUBAGENT_MESSAGES_SCHEMA),
                     "config_id": {
                         "type": "string",
-                        "minLength": 1,
-                        "description": "Optional reusable agent spec ID from the system catalog.",
+                        "description": "Agent spec ID from the catalog's agent_configs, or an empty string for none. Not a provider ID.",
                     },
                     "name": {
                         "type": "string",
-                        "minLength": 1,
-                        "description": "Optional session display name.",
+                        "description": "Optional session display name; an empty string uses the default.",
+                    },
+                    "provider_id": {
+                        "type": "string",
+                        "description": "Chat provider ID from the catalog's chat_providers, or an empty string for none. Set either config_id or provider_id, and leave the other empty.",
                     },
                 },
                 "required": ["messages"],
@@ -87,6 +92,7 @@ class SpawnAgentTool(FunctionTool):
         messages: list[dict] | None = None,
         config_id: str | None = None,
         name: str | None = None,
+        provider_id: str | None = None,
         **kwargs: Any,
     ) -> str:
         """Resolve a native delegation choice and open its configured runtime.
@@ -96,6 +102,7 @@ class SpawnAgentTool(FunctionTool):
             messages: Self-contained structured input.
             config_id: Optional configured reusable agent.
             name: Optional session display name.
+            provider_id: Optional chat provider whose agent config is reused or created.
             **kwargs: Unsupported arguments, rejected to match the schema.
 
         Returns:
@@ -116,7 +123,11 @@ class SpawnAgentTool(FunctionTool):
             raise ValueError("AstrBot agent runtime is unavailable")
         return json.dumps(
             await native.spawn_agent(
-                context.context, messages, config_id=config_id, name=name
+                context.context,
+                messages,
+                config_id=config_id,
+                name=name,
+                provider_id=provider_id,
             ),
             ensure_ascii=False,
         )
