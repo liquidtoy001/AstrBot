@@ -1,5 +1,6 @@
 """Agent configuration persistence, profile authorization and migration."""
 
+import asyncio
 import copy
 import json
 from pathlib import Path
@@ -322,3 +323,210 @@ async def test_native_workers_inherit_main_execution_settings(
     assert (
         "Specialist instructions" if specialized else "Parent instructions"
     ) in request.system_prompt
+
+
+@pytest.mark.asyncio
+async def test_generic_worker_runs_on_the_spawning_requests_provider(environment):
+    env = environment
+    # ChatUI picked "alternate" for this message; the session default is "model".
+    env.event.set_extra("selected_provider", "alternate")
+    agent = await env.native.spawn_agent(env.root, [{"type": "plain", "text": "Task"}])
+    await env.service.wait(env.root, [agent["agent_id"]], 2000, "all")
+    assert env.context.provider_manager.get_provider_by_id.call_args.args == (
+        "alternate",
+    )
+
+
+class _Profile(dict):
+    """A stored profile that counts its saves."""
+
+    saves = 0
+
+    async def save_config_async(self):
+        self.saves += 1
+        return True
+
+
+def _stored_profile(env):
+    """Route the session to a stored profile the runtime may update."""
+    profile = _Profile(
+        agent={"runtime": "astrbot", "config": {"subagents": env.config}}
+    )
+    env.context.astrbot_config_mgr = SimpleNamespace(
+        confs={"chatui": profile},
+        get_conf_info=lambda umo: {"id": "chatui"},
+        default_conf=None,
+    )
+    env.context.get_config = lambda **kwargs: profile
+    return profile
+
+
+async def _spawn(env, **kwargs):
+    agent = await env.native.spawn_agent(
+        env.root, [{"type": "plain", "text": "Task"}], **kwargs
+    )
+    await env.service.wait(env.root, [agent["agent_id"]], 2000, "all")
+    return agent
+
+
+@pytest.mark.asyncio
+async def test_spawn_provider_id_creates_and_selects_one_agent_config(environment):
+    env = environment
+    profile = _stored_profile(env)
+    agent = await _spawn(env, provider_id="alternate")
+    created = agent["agent_config"]
+    assert created["created"] is True
+    assert created["name"] == "test-model worker"
+    stored = await env.agent_configs.get(created["config_id"])
+    assert stored.runtime == "astrbot"
+    assert stored.config == {
+        "model": {"provider_id": "alternate"},
+        "persona": {"persona_id": ""},
+    }
+    assert env.config["config_ids"] == [created["config_id"]]
+    assert profile.saves == 1
+    assert env.context.provider_manager.get_provider_by_id.call_args.args == (
+        "alternate",
+    )
+    # The session panel shows the config name as the agent name.
+    assert env.store.agents[agent["agent_id"]].name == "test-model worker"
+    # The next request for the same model reuses it without saving again.
+    again = await _spawn(env, provider_id="alternate")
+    assert again["agent_config"] == {**created, "created": False}
+    assert len(await env.agent_configs.list()) == 1
+    assert profile.saves == 1
+
+
+@pytest.mark.asyncio
+async def test_spawn_provider_id_reuses_a_selected_plain_agent(environment):
+    env = environment
+    _stored_profile(env)
+    persona = await env.save_agent(
+        "Writer", persona_id="writer", provider_id="alternate"
+    )
+    plain = await env.save_agent("Alternate worker", provider_id="alternate")
+    agent = await _spawn(env, provider_id="alternate")
+    # The persona agent would surprise the user; the plain one matches.
+    assert agent["agent_config"]["config_id"] == plain.config_id
+    assert agent["agent_config"]["created"] is False
+    assert env.config["config_ids"] == [persona.config_id, plain.config_id]
+
+
+@pytest.mark.asyncio
+async def test_concurrent_spawns_for_one_provider_create_one_config(environment):
+    env = environment
+    profile = _stored_profile(env)
+    agents = await asyncio.gather(
+        *(
+            env.native.spawn_agent(
+                env.root,
+                [{"type": "plain", "text": f"Story {index}"}],
+                provider_id="alternate",
+            )
+            for index in range(3)
+        )
+    )
+    await env.service.wait(env.root, [a["agent_id"] for a in agents], 2000, "all")
+    assert len({a["agent_config"]["config_id"] for a in agents}) == 1
+    assert [a["agent_config"]["created"] for a in agents].count(True) == 1
+    assert len(await env.agent_configs.list()) == 1
+    assert len(env.config["config_ids"]) == 1
+    assert profile.saves == 1
+
+
+@pytest.mark.asyncio
+async def test_spawn_provider_id_rejects_unknown_providers(environment):
+    env = environment
+    _stored_profile(env)
+    # A disabled provider is not loaded, so it is unknown here as well.
+    with pytest.raises(ValueError, match=r"Unknown.*luna.*\['model', 'alternate'\]"):
+        await _spawn(env, provider_id="luna")
+    spec = await env.save_agent("Worker", provider_id="model")
+    with pytest.raises(ValueError, match="Send only config_id"):
+        await _spawn(env, config_id=spec.config_id, provider_id="alternate")
+    assert len(await env.agent_configs.list()) == 1
+    assert env.config["config_ids"] == [spec.config_id]
+
+
+@pytest.mark.asyncio
+async def test_catalog_names_each_agents_model_and_the_chat_providers(environment):
+    env = environment
+    fixed = await env.save_agent("Fixed", provider_id="alternate")
+    inherit = await env.save_agent("Inherit")
+    env.event.set_extra("selected_provider", "model")
+    request = ProviderRequest(conversation=env.conversation)
+    await apply_subagents(request, env.context, env.event, runtime=env.native)
+    prompt = request.system_prompt
+    catalog = json.loads(
+        prompt.split("<agent_configs>\n")[1].split("\n</agent_configs>")[0]
+    )
+    by_id = {entry["config_id"]: entry for entry in catalog}
+    assert by_id[fixed.config_id]["provider_id"] == "alternate"
+    assert by_id[inherit.config_id]["provider_id"] == "model"
+    assert by_id[fixed.config_id]["model"] == "test-model"
+    providers = json.loads(
+        prompt.split("<chat_providers>\n")[1].split("\n</chat_providers>")[0]
+    )
+    assert [item["provider_id"] for item in providers] == ["model", "alternate"]
+    schema = request.func_tool.get_tool("spawn_agent").parameters
+    assert "provider_id" in schema["properties"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("config_id", "provider_id", "runs_on"),
+    [
+        # Argument shapes logged from a model that fills every optional field.
+        ("alternate", "alternate", "alternate"),
+        (" ", " ", None),
+        (" ", "alternate", "alternate"),
+        ("alternate", None, "alternate"),
+        ("", "", None),
+    ],
+)
+async def test_spawn_ignores_blank_and_misplaced_arguments(
+    environment, config_id, provider_id, runs_on
+):
+    env = environment
+    _stored_profile(env)
+    agent = await _spawn(env, config_id=config_id, provider_id=provider_id, name=" ")
+    if runs_on is None:
+        # A generic worker on the request's model, as without the arguments.
+        assert "agent_config" not in agent
+        expected = "model"
+    else:
+        assert agent["agent_config"]["name"] == "test-model worker"
+        expected = runs_on
+    assert env.context.provider_manager.get_provider_by_id.call_args.args == (expected,)
+    assert env.store.agents[agent["agent_id"]].name.strip()
+
+
+@pytest.mark.asyncio
+async def test_spawn_rejects_only_a_real_config_provider_conflict(environment):
+    env = environment
+    _stored_profile(env)
+    spec = await env.save_agent("Alternate", provider_id="alternate")
+    agent = await _spawn(env, config_id=spec.config_id, provider_id="alternate")
+    assert "agent_config" not in agent
+    other = await env.save_agent("Default", provider_id="model")
+    with pytest.raises(ValueError, match="Send only config_id=.*or only provider_id"):
+        await _spawn(env, config_id=other.config_id, provider_id="alternate")
+
+
+@pytest.mark.asyncio
+async def test_spawn_provider_id_selects_an_existing_plain_agent_instead_of_creating(
+    environment,
+):
+    env = environment
+    profile = _stored_profile(env)
+    existing = await env.save_agent("My alternate", provider_id="alternate")
+    env.config["config_ids"].remove(existing.config_id)
+    agent = await _spawn(env, provider_id="alternate")
+    assert agent["agent_config"] == {
+        "config_id": existing.config_id,
+        "name": "My alternate",
+        "created": False,
+    }
+    assert env.config["config_ids"] == [existing.config_id]
+    assert len(await env.agent_configs.list()) == 1
+    assert profile.saves == 1

@@ -5282,7 +5282,9 @@ async def test_v1_regenerate_rejects_unknown_reasoning_effort(
     "method,suffix,payload",
     [
         ("GET", "settings", None),
+        ("GET", "subagents", None),
         ("POST", "compact", None),
+        ("POST", "subagents/a1/cancel", None),
         ("PUT", "persona", {"persona_id": "default"}),
     ],
 )

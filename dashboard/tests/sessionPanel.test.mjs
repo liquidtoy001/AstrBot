@@ -19,6 +19,7 @@ function mountPanel(overrides = {}, api = {}, storage = new Map()) {
         },
       },
       "@/components/shared/StyledMenu.vue": {},
+      "@/components/chat/SessionSubagents.vue": {},
       "@/i18n/composables": {
         useModuleI18n: () => ({
           tm: (key, params) => (params ? `${key}:${JSON.stringify(params)}` : key),
