@@ -167,7 +167,11 @@
     "thinkSummary": "Thought {count} times",
     "toolSummary": "used {count} tools",
     "think": "Thinking",
-    "toolUsed": "Using Tool"
+    "toolUsed": "Using Tool",
+    "commandSummary": "ran {count} commands",
+    "fileSummary": "edited {count} files",
+    "subagentSummary": "started {count} sub-agents",
+    "otherToolSummary": "{count} other tool calls"
   },
   "history": {
     "edit": "Edit message",
@@ -239,6 +243,55 @@
   "tokenUsage": {
     "tooltip": "{used} / {limit} tokens ({percent}%)"
   },
+  "toolSummary": {
+    "run": "Ran",
+    "runPython": "Ran Python",
+    "edit": "Edited",
+    "read": "Read",
+    "search": "Searched",
+    "spawn": "Started sub-agent",
+    "message": "Messaged sub-agent",
+    "wait": "Waited for sub-agents",
+    "list": "Listed sub-agents",
+    "result": "Read sub-agent result",
+    "cancel": "Stopped a sub-agent"
+  },
+  "sessionPanel": {
+    "session": {
+      "title": "This conversation",
+      "model": "Model",
+      "newChat": "Send the first message to switch the persona of this conversation."
+    },
+    "context": {
+      "title": "Context",
+      "used": "Used {percent}",
+      "usedNoLimit": "Used (limit unknown)",
+      "untilCompact": "{tokens} left until auto-compact",
+      "compactNow": "Compact conversation",
+      "compacted": "Compacted: about {before} → {after}; usage updates after the next reply.",
+      "compactFailed": "Compaction not done: {error}",
+      "totalUsage": "This conversation: input {input} ({hit}% cache hits) · output {output}",
+      "compactions": "Context compressed or truncated {count} times in this conversation",
+      "immediate": "compacts now",
+      "auto": "Auto (~{tokens})",
+      "threshold": "Auto-compact threshold",
+      "nearCompaction": "Above the auto-compact threshold; may compress before the next request.",
+      "free": "Free space",
+      "noData": "No provider-reported usage yet. Send a message to see it.",
+      "note": "Used is the provider-reported input of the latest request; parts are character-based estimates scaled to it.",
+      "toolsCount": "Tool definitions · {count}",
+      "parts": {
+        "system": "System prompt",
+        "tools": "Tool definitions",
+        "messages": "Messages",
+        "tool_results": "Tool results",
+        "reasoning": "Reasoning"
+      }
+    },
+    "changes": {
+      "title": "File changes"
+    }
+  },
   "refs": {
     "title": "References",
     "sources": "Sources"
@@ -293,7 +346,13 @@
     "expand": "Expand workbench",
     "restore": "Restore panel size",
     "resize": "Resize workbench",
-    "closeTab": "Close {title}"
+    "closeTab": "Close {title}",
+    "builtin": {
+      "session": {
+        "title": "Session",
+        "description": "This conversation's model, context, compaction, changed files and sub-agents"
+      }
+    }
   },
   "executionError": {
     "noModel": {

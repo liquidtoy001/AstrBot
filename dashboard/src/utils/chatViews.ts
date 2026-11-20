@@ -36,9 +36,13 @@ export interface WorkbenchView {
   i18n?: Record<string, unknown>;
 }
 
+// Workbench tabs rendered by ChatUI itself instead of a plugin view.
+export type WorkbenchBuiltin = "session";
+
 export interface WorkbenchTab {
   page?: WorkbenchView;
   launcher?: boolean;
+  builtin?: WorkbenchBuiltin;
   part: MessagePart;
   action?: ViewActionHandler;
 }
@@ -50,6 +54,7 @@ export const workbenchKey: InjectionKey<
         action?: ViewActionHandler,
         automatic?: "history" | "live",
       ) => void;
+      openBuiltin: (name: WorkbenchBuiltin) => void;
     }
   | undefined
 > = Symbol("chat-workbench");

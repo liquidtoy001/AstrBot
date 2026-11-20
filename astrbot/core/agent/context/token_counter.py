@@ -92,3 +92,59 @@ class EstimateTokenCounter:
         return int(
             chinese_count * 0.6 + emoji_count * EMOJI_TOKEN_ESTIMATE + other_count * 0.3
         )
+
+
+def estimate_context_breakdown(messages: list[Message], tool_set=None) -> dict:
+    """Estimate how many tokens each context component takes in one request.
+
+    The numbers come from the character based estimate above, not from the
+    provider, so they are only meant to show relative shares.
+
+    Args:
+        messages: The messages sent in the request, including the system prompt.
+        tool_set: The ToolSet sent with the request, or None.
+
+    Returns:
+        A dict with estimated token counts for ``system``, ``tools``,
+        ``messages``, ``tool_results`` and ``reasoning``, plus ``tool_count``
+        when tools were sent.
+    """
+    counter = EstimateTokenCounter()
+    result = {
+        "system": 0,
+        "tools": 0,
+        "messages": 0,
+        "tool_results": 0,
+        "reasoning": 0,
+    }
+    if tool_set:
+        schema = tool_set.openai_schema()
+        result["tools"] = counter._estimate_tokens(
+            json.dumps(schema, ensure_ascii=False)
+        )
+        result["tool_count"] = len(schema)
+    for msg in messages:
+        if msg.role == "system":
+            key = "system"
+        elif msg.role == "tool":
+            key = "tool_results"
+        elif msg.role in ("user", "assistant"):
+            key = "messages"
+        else:
+            continue
+        content = msg.content
+        if isinstance(content, list):
+            for part in content:
+                if isinstance(part, ThinkPart):
+                    result["reasoning"] += counter._estimate_tokens(part.think)
+                else:
+                    result[key] += counter.count_tokens(
+                        [Message(role="user", content=[part])]
+                    )
+        elif isinstance(content, str):
+            result[key] += counter._estimate_tokens(content)
+        if msg.tool_calls:
+            result[key] += counter.count_tokens(
+                [Message(role="assistant", tool_calls=msg.tool_calls)]
+            )
+    return result

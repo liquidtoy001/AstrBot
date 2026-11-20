@@ -23,6 +23,10 @@ WEBCHAT_CHAT_OPTIONS: dict[str, Callable[[Any], bool]] = {
     "permission_mode": lambda value: value in PERMISSION_MODES,
     # Fast mode (faster output at a higher price) where the provider offers it.
     "fast_mode": lambda value: value is True,
+    # Earlier auto-compaction point in tokens; the runtime applies a floor.
+    "compact_threshold": lambda value: (
+        isinstance(value, int) and not isinstance(value, bool) and value > 0
+    ),
 }
 
 

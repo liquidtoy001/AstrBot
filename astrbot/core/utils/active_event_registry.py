@@ -28,6 +28,23 @@ class ActiveEventRegistry:
     def register(self, event: AstrMessageEvent) -> None:
         self._events[event.unified_msg_origin].add(event)
 
+    def has_active_execution(self, umo: str) -> bool:
+        """Check foreground and background execution for a conversation.
+
+        Args:
+            umo: Unified message origin of the conversation.
+
+        Returns:
+            Whether any registered event, agent run, or background task is active.
+        """
+        return (
+            bool(self._events.get(umo))
+            or any(
+                event.unified_msg_origin == umo for event in self._agent_stop_callbacks
+            )
+            or any(not task.done() for task in self._background_tasks.get(umo, {}))
+        )
+
     def unregister(self, event: AstrMessageEvent) -> None:
         umo = event.unified_msg_origin
         self._agent_stop_callbacks.pop(event, None)

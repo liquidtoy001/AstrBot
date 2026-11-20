@@ -536,6 +536,16 @@ async def stop_chat_session(
     return await _run(lambda: service.stop_session(auth.username, session_id))
 
 
+@router.post("/chat/sessions/{session_id}/compact")
+async def compact_chat_session(
+    session_id: str,
+    auth: AuthContext = Depends(require_chat_scope),
+    service: ChatService = Depends(get_service),
+):
+    """Summarize the earlier model context of the caller's own conversation now."""
+    return await _run(lambda: service.compact_session(auth.username, session_id))
+
+
 @router.get("/chat/runs/{run_id}/stream")
 async def resume_chat_run(
     run_id: str,

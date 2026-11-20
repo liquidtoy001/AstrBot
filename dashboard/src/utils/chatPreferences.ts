@@ -7,6 +7,7 @@ export interface WorkbenchLayout {
     title?: string;
     plugin_name?: string;
     launcher?: boolean;
+    builtin?: string;
   }>;
   activeId: string;
   open: boolean;

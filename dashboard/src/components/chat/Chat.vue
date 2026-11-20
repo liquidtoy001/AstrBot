@@ -253,6 +253,7 @@
       v-model:stt-provider="selectedSttProvider"
       :stt-providers="sttProviders"
       @configure-stt="openProviderWorkspace('speech_to_text')"
+      :session-id="currSessionId || null"
     />
 
     <main
@@ -622,8 +623,20 @@
       @resize="chatHeader.workbenchWidth = $event"
       @new-tab="openWorkbenchPage()"
       @open-page="openWorkbenchPage"
+      @open-builtin="openWorkbenchBuiltin"
       @close="workbench.open = false"
-    />
+    >
+      <template #session>
+        <SessionPanel
+          :messages="activeMessages"
+          :used="latestContextTokens"
+          :limit="contextLimit(currentTokenProvider, currentTokenMetadata)"
+          :model="[currentProviderId, currentModelName].filter(Boolean).join(' / ')"
+          :session-id="currSessionId || null"
+          :running="Boolean(currSessionId && isSessionRunning(currSessionId))"
+        />
+      </template>
+    </ChatWorkbench>
     <RefsSidebar v-model="refsSidebarOpen" :refs="selectedRefs" />
     <WorkspaceFilesPanel
       :model-value="chatHeader.workspaceFilesOpen"
@@ -689,6 +702,7 @@ import ChatMessageList from "@/components/chat/ChatMessageList.vue";
 import ChatUILogo from "@/components/chat/ChatUILogo.vue";
 import type { RegenerateModelSelection } from "@/components/chat/RegenerateMenu.vue";
 import ChatLoadError from "@/components/chat/ChatLoadError.vue";
+import SessionPanel from "@/components/chat/SessionPanel.vue";
 import ThreadPanel from "@/components/chat/ThreadPanel.vue";
 import ChatWorkbench from "@/components/chat/ChatWorkbench.vue";
 import { workbenchChatKey } from "@/utils/chatViews";
@@ -1072,7 +1086,7 @@ const isEmptyChat = computed(
     !loadingMessages.value &&
     !activeMessages.value.length,
 );
-const { state: workbench, closeTab: closeWorkbenchTab, openPage: openWorkbenchPage } = useChatWorkbench(currSessionId, toRef(chatHeader, "workbenchWidth"));
+const { state: workbench, closeTab: closeWorkbenchTab, openPage: openWorkbenchPage, openBuiltin: openWorkbenchBuiltin } = useChatWorkbench(currSessionId, toRef(chatHeader, "workbenchWidth"));
 const workbenchVisible = computed(() =>
   Boolean(workbench.value?.open && !isProviderWorkspace.value && !selectedProject.value),
 );

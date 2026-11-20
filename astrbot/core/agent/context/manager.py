@@ -72,14 +72,12 @@ class ContextManager:
                 self.revision += 1
 
             # 2. 基于 token 的压缩
-            if self.config.max_context_tokens > 0:
+            if self.config.max_context_tokens > 0 or self.config.trigger_tokens > 0:
                 total_tokens = self.token_counter.count_tokens(
                     result, trusted_token_usage
                 )
 
-                if self.compressor.should_compress(
-                    result, total_tokens, self.config.max_context_tokens
-                ):
+                if self._over_limit(result, total_tokens):
                     # Custom compressors may mutate the existing list in place.
                     self.revision += 1
                     result = await self._run_compression(result, total_tokens)
@@ -90,6 +88,23 @@ class ContextManager:
         except Exception as e:
             logger.error(f"Error during context processing: {e}", exc_info=True)
             return messages
+
+    def _over_limit(self, messages: list[Message], tokens: int) -> bool:
+        """Whether the context must be compressed.
+
+        Args:
+            messages: The current message list.
+            tokens: Its token count.
+
+        Returns:
+            True above ``trigger_tokens`` when set, otherwise when the
+            compressor's own ratio of the context window is exceeded.
+        """
+        if self.config.trigger_tokens > 0:
+            return tokens > self.config.trigger_tokens
+        return self.compressor.should_compress(
+            messages, tokens, self.config.max_context_tokens
+        )
 
     async def _run_compression(
         self, messages: list[Message], prev_tokens: int
@@ -116,18 +131,12 @@ class ContextManager:
         # double check
         tokens_after_summary = self.token_counter.count_tokens(messages)
 
-        # calculate compress rate
-        compress_rate = (tokens_after_summary / self.config.max_context_tokens) * 100
         logger.info(
-            f"Compress completed."
-            f" {prev_tokens} -> {tokens_after_summary} tokens,"
-            f" compression rate: {compress_rate:.2f}%.",
+            f"Compress completed. {prev_tokens} -> {tokens_after_summary} tokens."
         )
 
         # last check
-        if not self.compressor.should_compress(
-            messages, tokens_after_summary, self.config.max_context_tokens
-        ):
+        if not self._over_limit(messages, tokens_after_summary):
             return messages
 
         logger.info(
@@ -151,9 +160,7 @@ class ContextManager:
         incremental_tokens = type(self.token_counter) is EstimateTokenCounter and type(
             self.compressor
         ) in (TruncateByTurnsCompressor, LLMSummaryCompressor)
-        while len(rounds) - dropped_rounds > 1 and self.compressor.should_compress(
-            messages, tokens, self.config.max_context_tokens
-        ):
+        while len(rounds) - dropped_rounds > 1 and self._over_limit(messages, tokens):
             dropped_round = rounds[dropped_rounds]
             dropped_rounds += 1
             if incremental_tokens:
@@ -169,9 +176,7 @@ class ContextManager:
             ]
         logger.info(f"Dropped {dropped_rounds} oldest round(s).")
 
-        if self.compressor.should_compress(
-            messages, tokens, self.config.max_context_tokens
-        ):
+        if self._over_limit(messages, tokens):
             logger.warning(
                 "Context still exceeds max tokens with only the latest round left; "
                 "sending it as is."

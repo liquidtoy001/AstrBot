@@ -167,7 +167,11 @@
     "thinkSummary": "思考 {count} 回",
     "toolSummary": "ツール使用 {count} 回",
     "think": "思考",
-    "toolUsed": "ツールを使用"
+    "toolUsed": "ツールを使用",
+    "commandSummary": "{count} 個のコマンドを実行",
+    "fileSummary": "{count} 個のファイルを編集",
+    "subagentSummary": "{count} 個のサブエージェントを起動",
+    "otherToolSummary": "その他のツール {count} 回"
   },
   "history": {
     "edit": "メッセージを編集",
@@ -239,6 +243,55 @@
   "tokenUsage": {
     "tooltip": "{used} / {limit} トークン（{percent}%）"
   },
+  "toolSummary": {
+    "run": "実行",
+    "runPython": "Python を実行",
+    "edit": "編集",
+    "read": "読み取り",
+    "search": "検索",
+    "spawn": "サブエージェントを起動",
+    "message": "サブエージェントにメッセージ",
+    "wait": "サブエージェントの完了を待機",
+    "list": "サブエージェント一覧を確認",
+    "result": "サブエージェントの結果を取得",
+    "cancel": "サブエージェントを停止"
+  },
+  "sessionPanel": {
+    "session": {
+      "title": "この会話",
+      "model": "モデル",
+      "newChat": "最初のメッセージを送信すると、この会話のペルソナを切り替えられます。"
+    },
+    "context": {
+      "title": "コンテキスト",
+      "used": "使用済み {percent}",
+      "usedNoLimit": "使用済み（上限不明）",
+      "untilCompact": "自動圧縮まで残り {tokens}",
+      "compactNow": "会話を圧縮",
+      "compacted": "圧縮しました：約 {before} → {after}。次の返信後に使用量を更新します。",
+      "compactFailed": "圧縮できませんでした：{error}",
+      "totalUsage": "この会話の累計：入力 {input}（キャッシュヒット {hit}%）· 出力 {output}",
+      "compactions": "この会話でコンテキストを {count} 回圧縮または切り詰めました",
+      "immediate": "すぐに圧縮",
+      "auto": "自動（約 {tokens}）",
+      "threshold": "自動圧縮のしきい値",
+      "nearCompaction": "自動圧縮のしきい値を超えています。次のリクエスト前に圧縮される可能性があります。",
+      "free": "空き",
+      "noData": "プロバイダーからの使用量はまだありません。メッセージを送信すると表示されます。",
+      "note": "使用量は直近リクエストの入力としてプロバイダーが報告した値です。内訳は文字数による推定を比例配分したものです。",
+      "toolsCount": "ツール定義 · {count}",
+      "parts": {
+        "system": "システムプロンプト",
+        "tools": "ツール定義",
+        "messages": "メッセージ",
+        "tool_results": "ツール結果",
+        "reasoning": "思考"
+      }
+    },
+    "changes": {
+      "title": "ファイルの変更"
+    }
+  },
   "refs": {
     "title": "参照",
     "sources": "出典"
@@ -293,7 +346,13 @@
     "expand": "ワークベンチを拡大",
     "restore": "パネルサイズを戻す",
     "resize": "ワークベンチの幅を調整",
-    "closeTab": "{title} を閉じる"
+    "closeTab": "{title} を閉じる",
+    "builtin": {
+      "session": {
+        "title": "セッション",
+        "description": "この会話のモデル、コンテキスト、圧縮、変更されたファイル、サブエージェント"
+      }
+    }
   },
   "executionError": {
     "noModel": {

@@ -1,6 +1,7 @@
 import { computed, provide, reactive, ref, watch, type Ref } from "vue";
 import {
   workbenchKey,
+  type WorkbenchBuiltin,
   type WorkbenchView,
   type WorkbenchTab,
 } from "@/utils/chatViews";
@@ -54,6 +55,8 @@ export function useChatWorkbench(
       const name = typeof tab.name === "string" ? tab.name : "";
       if (tab.launcher && tab.id === "workbench:new") {
         tabs.push({ part: { type: "view", id: tab.id }, launcher: true });
+      } else if (tab.builtin === "session" && tab.id === "builtin:session") {
+        tabs.push({ part: { type: "view", id: tab.id }, builtin: "session" });
       } else if (
         typeof tab.plugin_name === "string" &&
         tab.plugin_name &&
@@ -116,6 +119,7 @@ export function useChatWorkbench(
               title: String(tab.part.title || ""),
               ...(tab.page ? { plugin_name: tab.page.plugin_name } : {}),
               ...(tab.launcher ? { launcher: true } : {}),
+              ...(tab.builtin ? { builtin: tab.builtin } : {}),
             })),
             activeId: current.activeId,
             open: current.open,
@@ -158,7 +162,27 @@ export function useChatWorkbench(
     current.open = true;
   }
 
+  /** Open (or switch to) a tab ChatUI renders itself, such as the session view. */
+  function openBuiltin(name: WorkbenchBuiltin) {
+    const current = (sessions[sessionId.value] ||= {
+      tabs: [],
+      activeId: "",
+      open: false,
+      seen: new Set(),
+    });
+    const id = `builtin:${name}`;
+    if (!current.tabs.some((tab) => String(tab.part.id) === id)) {
+      const tab: WorkbenchTab = { part: { type: "view", id }, builtin: name };
+      const launcherIndex = current.tabs.findIndex((tab) => tab.launcher);
+      if (launcherIndex >= 0) current.tabs.splice(launcherIndex, 1, tab);
+      else current.tabs.unshift(tab);
+    }
+    current.activeId = id;
+    current.open = true;
+  }
+
   provide(workbenchKey, {
+    openBuiltin,
     open(part, action, automatic) {
       if (!sessionId.value) return;
       const current = (sessions[sessionId.value] ||= {
@@ -201,5 +225,5 @@ export function useChatWorkbench(
     if (!current.tabs.length) current.open = false;
   }
 
-  return { state, closeTab, openPage };
+  return { state, closeTab, openPage, openBuiltin };
 }

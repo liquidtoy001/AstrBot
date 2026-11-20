@@ -301,6 +301,7 @@ class ToolLoopAgentRunner(BaseAgentRunner[TContext]):
         tool_result_overflow_dir: str | None = None,
         read_tool: FunctionTool | None = None,
         max_context_tokens: int | None = None,
+        compress_trigger_tokens: int = 0,
         conversation_event_sink: Callable[[AgentResponse], Awaitable[bool]]
         | None = None,
         **kwargs: T.Any,
@@ -323,7 +324,10 @@ class ToolLoopAgentRunner(BaseAgentRunner[TContext]):
         self.tool_result_overflow_dir = tool_result_overflow_dir
         self.read_tool = read_tool
         self._tool_result_token_counter = EstimateTokenCounter()
+        self.compaction_count = 0
+        """How many times this run compressed or truncated its context."""
         self.request_context_manager_config = ContextConfig(
+            trigger_tokens=compress_trigger_tokens,
             # <=0 disables token-based guarding.
             max_context_tokens=(
                 max_context_tokens
@@ -1228,6 +1232,12 @@ class ToolLoopAgentRunner(BaseAgentRunner[TContext]):
         ):
             yield self._context_response(reason="compaction", origin="system")
         self._simple_print_message_role("[AftCompact]", self.run_context.messages)
+        if (
+            processed_messages is not previous_messages
+            or self.request_context_manager.revision != context_revision
+        ):
+            # Read with the usage of the next request.
+            self.compaction_count += 1
 
         async for llm_response in self._iter_llm_responses_with_fallback():
             if llm_response.is_chunk:

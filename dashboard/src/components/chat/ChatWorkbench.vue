@@ -129,7 +129,9 @@
         <WorkbenchLauncher
           v-if="tab.launcher"
           @open="emit('open-page', $event)"
+          @open-builtin="emit('open-builtin', $event)"
         />
+        <slot v-else-if="tab.builtin" :name="tab.builtin" />
         <PluginViewFrame
           v-else-if="tab.page"
           :plugin-id="tab.page.plugin_name"
@@ -164,13 +166,18 @@ import {
 } from "@lucide/vue";
 import { useI18n, useModuleI18n } from "@/i18n/composables";
 import { resolvePluginViewText } from "@/utils/pluginI18n";
-import type { WorkbenchTab, WorkbenchView } from "@/utils/chatViews";
+import type {
+  WorkbenchBuiltin,
+  WorkbenchTab,
+  WorkbenchView,
+} from "@/utils/chatViews";
 import WorkbenchLauncher from "./WorkbenchLauncher.vue";
 import PluginViewFrame from "@/components/plugins/PluginViewFrame.vue";
 import PluginViewCard from "./message_list_comps/PluginViewCard.vue";
 
 const { locale } = useI18n();
 function tabTitle(tab: WorkbenchTab) {
+  if (tab.builtin) return tm(`workbench.builtin.${tab.builtin}.title`);
   if (!tab.page && tab.part.title) return String(tab.part.title);
   const metadata = tab.page || tab.part.view_metadata || {
     name: tab.part.name,
@@ -197,6 +204,7 @@ const emit = defineEmits<{
   resize: [width: number];
   "new-tab": [];
   "open-page": [view: WorkbenchView];
+  "open-builtin": [name: WorkbenchBuiltin];
 }>();
 const expanded = ref(false);
 const resizing = ref(false);

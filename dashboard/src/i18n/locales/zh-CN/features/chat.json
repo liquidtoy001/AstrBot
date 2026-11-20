@@ -167,7 +167,11 @@
     "thinkSummary": "思考了 {count} 次",
     "toolSummary": "使用了 {count} 次工具",
     "think": "思考",
-    "toolUsed": "使用工具"
+    "toolUsed": "使用工具",
+    "commandSummary": "运行了 {count} 条命令",
+    "fileSummary": "编辑了 {count} 个文件",
+    "subagentSummary": "派出 {count} 个子代理",
+    "otherToolSummary": "其他工具 {count} 次"
   },
   "history": {
     "edit": "编辑消息",
@@ -239,6 +243,55 @@
   "tokenUsage": {
     "tooltip": "{used} / {limit} tokens（{percent}%）"
   },
+  "toolSummary": {
+    "run": "运行了",
+    "runPython": "运行了 Python",
+    "edit": "编辑了",
+    "read": "读取了",
+    "search": "搜索了",
+    "spawn": "派出子代理",
+    "message": "给子代理发了消息",
+    "wait": "等待子代理完成",
+    "list": "查看了子代理列表",
+    "result": "读取了子代理结果",
+    "cancel": "停止了子代理"
+  },
+  "sessionPanel": {
+    "session": {
+      "title": "本对话",
+      "model": "模型",
+      "newChat": "发送第一条消息后可以切换本对话的人格。"
+    },
+    "context": {
+      "title": "上下文",
+      "used": "已使用 {percent}",
+      "usedNoLimit": "已使用（上限未知）",
+      "untilCompact": "距自动压缩还剩 {tokens}",
+      "compactNow": "压缩会话",
+      "compacted": "已压缩：约 {before} → {after}，下一条回复后更新用量。",
+      "compactFailed": "压缩未完成：{error}",
+      "totalUsage": "本对话累计：输入 {input}（缓存命中 {hit}%）· 输出 {output}",
+      "compactions": "本对话已压缩或截断上下文 {count} 次",
+      "immediate": "将立即压缩",
+      "auto": "自动（约 {tokens}）",
+      "threshold": "自动压缩阈值",
+      "nearCompaction": "已超过自动压缩阈值，下次请求前可能压缩。",
+      "free": "剩余空间",
+      "noData": "还没有模型上报的用量，发送一条消息后显示。",
+      "note": "已使用量为服务商上报的最近一次请求输入；分项按字数估算后按比例换算。",
+      "toolsCount": "工具定义 · {count}",
+      "parts": {
+        "system": "系统提示",
+        "tools": "工具定义",
+        "messages": "对话消息",
+        "tool_results": "工具结果",
+        "reasoning": "思考内容"
+      }
+    },
+    "changes": {
+      "title": "文件改动"
+    }
+  },
   "refs": {
     "title": "引用",
     "sources": "来源"
@@ -293,7 +346,13 @@
     "expand": "展开工作台",
     "restore": "还原面板大小",
     "resize": "调整工作台宽度",
-    "closeTab": "关闭 {title}"
+    "closeTab": "关闭 {title}",
+    "builtin": {
+      "session": {
+        "title": "会话",
+        "description": "本对话的模型、上下文、压缩、改动的文件和子代理"
+      }
+    }
   },
   "executionError": {
     "noModel": {

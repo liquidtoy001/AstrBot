@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { ArrowUpRight, PanelsTopLeft } from "@lucide/vue";
+import { ArrowUpRight, ListChecks, PanelsTopLeft } from "@lucide/vue";
 import { fetchWithAuth } from "@/api/http";
 import { useI18n, useModuleI18n } from "@/i18n/composables";
 import { resolvePluginViewText } from "@/utils/pluginI18n";
-import type { WorkbenchView } from "@/utils/chatViews";
+import type { WorkbenchBuiltin, WorkbenchView } from "@/utils/chatViews";
 
-defineEmits<{ open: [view: WorkbenchView] }>();
+defineEmits<{
+  open: [view: WorkbenchView];
+  openBuiltin: [name: WorkbenchBuiltin];
+}>();
 const { locale } = useI18n();
 const { tm } = useModuleI18n("features/chat");
 const views = ref<WorkbenchView[]>([]);
@@ -32,6 +35,15 @@ onMounted(load);
   <section class="workbench-launcher-page">
     <h1>{{ tm("workbench.newTab") }}</h1>
     <p>{{ tm("workbench.chooseView") }}</p>
+    <!-- Built-in views come first and need no plugin. -->
+    <button type="button" class="view-choice" @click="$emit('openBuiltin', 'session')">
+      <ListChecks :size="20" :stroke-width="1.5" />
+      <span class="view-copy">
+        <strong>{{ tm("workbench.builtin.session.title") }}</strong>
+        <span>{{ tm("workbench.builtin.session.description") }}</span>
+      </span>
+      <ArrowUpRight :size="16" />
+    </button>
     <v-progress-linear v-if="loading" indeterminate color="primary" />
     <div v-else-if="failed" role="status">
       <p>{{ tm("workbench.loadError") }}</p>

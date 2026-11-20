@@ -13,16 +13,25 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from astrbot.core import logger, sp
+from astrbot.core.agent.context.compressor import LLMSummaryCompressor
+from astrbot.core.agent.context.round_utils import split_into_rounds
+from astrbot.core.agent.context.token_counter import EstimateTokenCounter
+from astrbot.core.agent.message import dump_messages, load_messages
 from astrbot.core.astr_agent_runtime.permission_mode import (
     conversation_key,
     set_conversation_permission_mode,
 )
+from astrbot.core.astr_agent_runtime.subagents.store import AgentScope
 from astrbot.core.astr_agent_runtime.tools.computer_tools.file_undo import (
     clear_conversation_changes,
 )
+from astrbot.core.config.agent_runner import resolve_context_compression_config
 from astrbot.core.core_lifecycle import AstrBotCoreLifecycle
 from astrbot.core.db import BaseDatabase
-from astrbot.core.db.conversation import ContextUnavailableError
+from astrbot.core.db.conversation import (
+    ContextUnavailableError,
+    ConversationConflictError,
+)
 from astrbot.core.platform.message_type import MessageType
 from astrbot.core.platform.sources.webchat.message_parts_helper import (
     build_webchat_message_parts,
@@ -35,6 +44,7 @@ from astrbot.core.platform.sources.webchat.request_flags import (
     resolve_webchat_request_flags,
 )
 from astrbot.core.platform.sources.webchat.webchat_queue_mgr import webchat_queue_mgr
+from astrbot.core.provider.entities import ProviderType
 from astrbot.core.utils.active_event_registry import active_event_registry
 from astrbot.core.utils.astrbot_path import (
     get_astrbot_data_path,
@@ -1521,6 +1531,117 @@ class ChatService:
         unified_msg_origin = build_webchat_unified_msg_origin(session)
         stopped_count = active_event_registry.request_agent_stop_all(unified_msg_origin)
         return {"stopped_count": stopped_count}
+
+    async def _owned_scope(self, username: str, session_id: str) -> AgentScope:
+        """Resolve the conversation scope of a ChatUI session its user owns.
+
+        Args:
+            username: Dashboard user.
+            session_id: ChatUI session ID.
+
+        Returns:
+            The session's UMO and current conversation ID (empty if none yet).
+
+        Raises:
+            ChatServiceError: If the session is missing or owned by someone else.
+        """
+        session = await self.db.get_platform_session_by_id(session_id)
+        if not session:
+            raise ChatServiceError(f"Session {session_id} not found")
+        if session.creator != username:
+            raise ChatServiceError("Permission denied")
+        umo = build_webchat_unified_msg_origin(session)
+        manager = self.core_lifecycle.conversation_manager
+        return AgentScope(umo, await manager.get_curr_conversation_id(umo) or "")
+
+    async def compact_session(self, username: str, session_id: str) -> dict:
+        """Summarize the earlier history of a ChatUI conversation right away.
+
+        The latest complete round is kept verbatim. Nothing is written unless
+        the summary makes the context smaller, and the write is rejected if a
+        run started or the conversation changed while the summary was being
+        generated. Only the model context changes; the chat display stays.
+
+        Args:
+            username: Dashboard user; must own the session.
+            session_id: ChatUI session ID.
+
+        Returns:
+            Estimated token counts before and after.
+
+        Raises:
+            ChatServiceError: If a reply is running, the history is too short,
+                or the summary failed or did not help.
+        """
+        scope = await self._owned_scope(username, session_id)
+        busy = ChatServiceError("A reply is still running; compact after it ends")
+        # Any running turn (SSE, WebSocket, a scheduled task or a sub-agent
+        # wake-up) holds the history position a compaction would invalidate.
+        if active_event_registry.has_active_execution(scope.umo) or any(
+            (run := self.chat_runs.get(run_id)) and run.task and not run.task.done()
+            for run_id in self.chat_runs_by_session.get(session_id, set())
+        ):
+            raise busy
+        store = self.db.conversation_store
+        snapshot = (
+            await store.read(scope.conversation_id) if scope.conversation_id else None
+        )
+        if snapshot is None:
+            raise ChatServiceError("This conversation has no history yet")
+        messages = load_messages(snapshot.messages)
+        if len(split_into_rounds(messages)) < 2:
+            raise ChatServiceError("Not enough history to compact")
+
+        core = self.core_lifecycle
+        compression = resolve_context_compression_config(
+            core.astrbot_config_mgr.get_conf(scope.umo)
+            .get("agent", {})
+            .get("config", {})
+            .get("compression", {})
+        )
+        provider = core.provider_manager.inst_map.get(
+            compression["llm_compress_provider_id"] or ""
+        ) or await core.provider_manager.get_using_provider_async(
+            ProviderType.CHAT_COMPLETION, scope.umo
+        )
+        if provider is None:
+            raise ChatServiceError("No model is available for compaction")
+        counter = EstimateTokenCounter()
+        compacted = await LLMSummaryCompressor(
+            provider=provider,
+            # A positive ratio always keeps the latest complete round exact.
+            keep_recent_ratio=max(
+                float(compression["llm_compress_keep_recent_ratio"] or 0.15), 0.01
+            ),
+            instruction_text=compression["llm_compress_instruction"] or None,
+            token_counter=counter,
+        )(messages)
+        before = counter.count_tokens(messages)
+        after = counter.count_tokens(compacted)
+        if compacted is messages or after >= before:
+            raise ChatServiceError("The summary did not make the context smaller")
+        if active_event_registry.has_active_execution(scope.umo):
+            raise busy
+        try:
+            await store.append(
+                scope.conversation_id,
+                [
+                    {
+                        "type": "conversation.updated",
+                        "payload": {"changes": {}, "token_usage": 0},
+                    }
+                ],
+                history=dump_messages(compacted),
+                reason="compaction",
+                origin="user",
+                expected_head=snapshot.revision.head_seq,
+                expected_leaf=snapshot.revision.leaf_event_id,
+            )
+        except ConversationConflictError as exc:
+            raise ChatServiceError(
+                "The conversation changed while compacting; try again"
+            ) from exc
+        return {"before": before, "after": after}
 
     async def stop_session_from_dashboard_payload(
         self,
