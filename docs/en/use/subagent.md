@@ -15,6 +15,8 @@ Open **Config → AI → Capabilities → Subagents** in the target profile and 
 3. Select a persona and chat model, or leave them empty to follow the main agent.
 4. Save, close the dialog, and select the agent under **Specialized Agent Configurations**.
 
+**Which model a sub-agent uses**: a specialized agent with a chat model uses that model. A specialized agent without one, and a generic sub-agent, use the model of the request that started it (for example the model chosen in ChatUI for that message), else the session default. The main agent sees each specialized agent's model and all available chat models; when the user asks for a specific model (such as "start 3 luna agents"), it uses a specialized agent on that model if there is one. Otherwise it passes the model's `provider_id` to `spawn_agent`, and AstrBot creates a specialized agent on that model with no persona (named like "gpt-6-luna worker", with a description saying it was created automatically) and selects it in the profile the conversation uses. Several spawned at once create only one; later requests for the model reuse it. Only enabled chat models can be used, an unknown ID is rejected with the list of valid ones, and no provider or credential is ever created. An existing specialized agent on that model with no persona (created by hand or automatically) is reused instead of creating another. The main agent tells the user when it created one; it also appears in ChatUI **Settings → Agent → Subagents** and in the config page's list of specialized agents, where it can be edited or deleted in **Configure Specialized Agents**. A chat model ID passed in `config_id` by mistake is treated as `provider_id`, and empty `config_id` or `provider_id` values count as not set.
+
 ![Subagent management](images/subagent-create-en.png)
 
 ![Create Agent form](images/subagent-edit-en.png)
@@ -36,7 +38,14 @@ Ask the main agent to delegate a task, for example: “Have a subagent review th
 | `send_message` | Add instructions to an existing agent. |
 | `cancel_agent` | Stop a task. |
 
-The configuration dialog manages saved agents; ask the main agent to check or stop running tasks. Subagents cannot create further subagents.
+The configuration dialog manages saved agents. To check or stop running tasks, ask the main agent, or in ChatUI open the workbench's **Session** view and look at the **Sub-agents** section:
+
+- Each row shows "model · thinking level · short task", what the agent is doing (for example running code or editing files), and how long it has run. The thinking level appears only when the sub-agent's provider configuration sets one.
+- A running sub-agent has a square button at the end of its row that stops it and its queued instructions. The session is kept, so the main agent can still send it new instructions.
+- Expand a row for the full name, provider, persona, latest request context, tools, task, result, and total usage (input, cache hits, and output as reported by the provider; marked "some requests unreported" when a request reported nothing, in which case actual usage is higher).
+- A reply that started sub-agents shows one chip per sub-agent below it (for example "haiku running code"); select a chip to find it in the **Session** view.
+
+Subagents cannot create further subagents.
 
 Delegated input supports text, images, and file references. Images from the original user message are not forwarded automatically. Follow-up instructions retain the subagent's history; in the built-in runtime, follow-up images and files are passed as text references.
 

@@ -83,13 +83,17 @@
 
 ### ChatUI session view / ChatUI 会话页
 
-- ChatUI 工作台新增内置的 **会话** 页（在「新工作台」中选择）：当前对话的模型、配置文件、人格、上下文分项、累计用量和缓存命中、压缩次数和改动过的文件。
-- Add a built-in **Session** view to the ChatUI workbench (choose it in a new workbench tab): the conversation's model, config profile, persona, context breakdown, total usage and cache hits, compaction count, and changed files.
+- ChatUI 工作台新增内置的 **会话** 页（在「新工作台」中选择，或点击子代理标签打开）：当前对话的模型、配置文件、人格、上下文分项、累计用量和缓存命中、压缩次数、改动过的文件和子代理。
+- Add a built-in **Session** view to the ChatUI workbench (choose it in a new workbench tab, or select a sub-agent chip): the conversation's model, config profile, persona, context breakdown, total usage and cache hits, compaction count, changed files, and sub-agents.
 - 会话页可为当前对话设置更早的自动压缩阈值（窗口的 50%/40%/30%，不低于 8192 token 和窗口的 20% 中较大者，与其他按对话选项一起保存，随请求以 `compact_threshold` 发送），并可 **压缩会话** 立即总结较早上下文；回复进行中会被拒绝。
 - The Session view sets an earlier auto-compact threshold for the current conversation (50%/40%/30% of the window, never below the larger of 8192 tokens and 20% of the window, stored with the other per-conversation options and sent as `compact_threshold`) and can **Compact conversation** right away; it is refused while a reply runs.
-- 工具卡片标题写出运行的命令或改动的文件，运行详情中思考块的标题分别统计命令、文件和子代理。
-- Tool cards name the command run or the file changed, and thinking block titles in the run details count commands, files, and sub-agents separately.
-- ChatUI **设置 → 智能体**：修改当前对话所用配置文件的人格、上下文管理策略和使用电脑能力几组设置；**单独建一份** 为 ChatUI 创建专用配置文件。
-- ChatUI **Settings → Agent**: edit the Persona, Context Management Strategy, and Agent Computer Use groups of the conversation's config profile; **Create ChatUI profile** gives ChatUI its own profile.
-- 新增接口 `POST /api/v1/chat/sessions/{session_id}/compact`、`GET .../settings`、`PUT .../persona`，只允许会话本人访问。每轮的 `agent_stats` 新增 `context_breakdown` 和 `compactions`。
-- Add `POST /api/v1/chat/sessions/{session_id}/compact`, `GET .../settings`, and `PUT .../persona`, limited to the session's owner. Each turn's `agent_stats` gains `context_breakdown` and `compactions`.
+- 会话页列出本对话的子代理，显示当前动作、运行时间和累计用量，并可停止；派出子代理的回复下方为每个子代理显示小标签。工具卡片标题写出运行的命令或改动的文件，运行详情中思考块的标题分别统计命令、文件和子代理。
+- The Session view lists the conversation's sub-agents with their current activity, run time, and total usage, and can stop them; replies that started sub-agents show one chip per sub-agent. Tool cards name the command run or the file changed, and thinking block titles in the run details count commands, files, and sub-agents separately.
+- 子代理以 AstrBot 星标显示，每个子代理一种颜色，标签和会话页一致。子代理结果返回后模型的回复显示在派出它们的回复气泡中（只保留一组操作按钮，重新生成从原来那一轮开始），不再单独成为一个气泡；该回复保存时带上 `subagent_results`。
+- Sub-agents are marked with the AstrBot star, one color per sub-agent, matching in the chips and the Session view. The model's reply to returned sub-agent results is shown in the bubble of the reply that started them (one set of actions; regenerate reruns the original turn) instead of a bubble of its own; that reply is saved with `subagent_results`.
+- 子代理的模型：通用子代理（以及没有指定模型的专用 Agent）改用派出它的这次请求所用的模型（如 ChatUI 为这条消息选择的模型），不再总是会话默认模型；子代理目录写明每个专用 Agent 的模型并列出可用聊天模型；用户点名的模型没有对应的专用 Agent 时，`spawn_agent` 可传入 `provider_id`，自动新建一个使用该模型的专用 Agent 并在会话所用的配置文件中勾选（同时派出多个只建一个，之后复用；只允许已启用的聊天模型）。此项改动适用于所有平台。
+- Sub-agent models: a generic sub-agent (and a specialized agent without a model) now uses the model of the request that started it (such as the model chosen in ChatUI for that message) instead of always the session default; the sub-agent catalog states each specialized agent's model and lists the available chat models; when no specialized agent uses a model the user names, `spawn_agent` takes its `provider_id` and creates a specialized agent on that model, selected in the conversation's profile (one per model even when several spawn at once, reused afterwards; enabled chat models only). This applies to all platforms.
+- ChatUI **设置 → 智能体**：修改当前对话所用配置文件的人格、上下文管理策略、子代理和使用电脑能力几组设置；**单独建一份** 为 ChatUI 创建专用配置文件。
+- ChatUI **Settings → Agent**: edit the Persona, Context Management Strategy, Subagents, and Agent Computer Use groups of the conversation's config profile; **Create ChatUI profile** gives ChatUI its own profile.
+- 新增接口 `GET /api/v1/chat/sessions/{session_id}/subagents`、`POST .../subagents/{agent_id}/cancel`、`POST .../compact`、`GET .../settings`、`PUT .../persona`，只允许会话本人访问。每轮的 `agent_stats` 新增 `context_breakdown` 和 `compactions`。
+- Add `GET /api/v1/chat/sessions/{session_id}/subagents`, `POST .../subagents/{agent_id}/cancel`, `POST .../compact`, `GET .../settings`, and `PUT .../persona`, limited to the session's owner. Each turn's `agent_stats` gains `context_breakdown` and `compactions`.
