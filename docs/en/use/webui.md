@@ -97,6 +97,7 @@ ChatUI supports these common workflows:
 - Send text, images, files, and voice input; uploaded attachments show previews and use file signature checks to help identify file types.
 - See the changes the model made to local files and undo a single change; see [File changes and undo](#file-changes-and-undo) below.
 - View model thinking, tool-call status, knowledge-base or web-search references, and per-message token and latency statistics.
+- When a reply fails, an error card says why and how to fix it. Besides a missing or unavailable model and connection problems, it recognises a rejected API key, a model that is not found, a model that needs the OpenAI Responses provider type for tool calls (each with a **Configure models** button), and a rate limit or quota.
 - Copy or regenerate existing replies, including regenerating with another model. Each reply, including its tool calls and button cards, is saved as one record, so it stays one bubble after a reload and copy or regenerate apply to the whole reply. Older replies already saved as several records are not merged. Your own messages can be copied too. Hovering over the buttons under a message explains what they do. While a reply is in progress, the AstrBot mark in its avatar is animated (not when the system asks for reduced motion).
 - A tool call that has not returned when the reply ends is shown as **Interrupted, result unknown** instead of a running timer; its action may still have taken effect.
 - Edit a user message and continue generation from that point, or start a thread from a specific excerpt.

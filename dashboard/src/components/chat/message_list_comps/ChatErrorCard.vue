@@ -43,6 +43,13 @@ const props = defineProps<{ code?: string; message?: string }>();
 const emit = defineEmits<{ configureModels: [] }>();
 const { tm } = useModuleI18n("features/chat");
 
+const PROVIDER_FAILURES: Record<string, string> = {
+  providerAuth: "apiKey",
+  providerRateLimit: "rateLimit",
+  providerToolsRequireResponses: "responsesApi",
+  providerModelNotFound: "modelNotFound",
+};
+
 const category = computed(() => {
   if (props.code === "noProvider") return "noModel";
   if (
@@ -56,10 +63,21 @@ const category = computed(() => {
     return "modelConfiguration";
   }
   if (props.code === "connection_error") return "connection";
+  // Provider failures with a stable code (see classify_provider_failure).
+  if (props.code && props.code in PROVIDER_FAILURES) {
+    return PROVIDER_FAILURES[props.code];
+  }
   return "generic";
 });
+// Everything but a rate limit is fixed in the model configuration.
 const configurationError = computed(() =>
-  ["noModel", "modelConfiguration"].includes(category.value),
+  [
+    "noModel",
+    "modelConfiguration",
+    "apiKey",
+    "responsesApi",
+    "modelNotFound",
+  ].includes(category.value),
 );
 </script>
 
