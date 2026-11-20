@@ -243,6 +243,22 @@
   "tokenUsage": {
     "tooltip": "{used} / {limit} トークン（{percent}%）"
   },
+  "agentSettings": {
+    "title": "エージェント",
+    "hint": "この会話が使う設定プロファイルの設定です。同じプロファイルを使うボットプラットフォームにも反映されます。",
+    "hintOwn": "ChatUI 専用の設定プロファイルの設定です。ボットプラットフォームには影響しません。",
+    "profile": "設定プロファイル：{name}",
+    "ownTitle": "ボットプラットフォームと分ける",
+    "ownHint": "現在の設定を「ChatUI」プロファイルとして複製し、すべての ChatUI 会話をそれに振り分けます（個別にプロファイルを選んだ会話を除く）。以後ここでの変更はボットに影響しません。",
+    "ownAction": "専用プロファイルを作成",
+    "ownDone": "ChatUI 専用の設定を作成しました",
+    "save": "保存",
+    "saved": "保存しました",
+    "failed": "保存に失敗しました：{error}",
+    "loadFailed": "読み込みに失敗しました：{error}",
+    "needs2fa": "この変更には二段階認証が必要です。完全な設定ページで保存してください",
+    "open": "完全な設定ページを開く"
+  },
   "toolSummary": {
     "run": "実行",
     "runPython": "Python を実行",
@@ -262,7 +278,12 @@
     "session": {
       "title": "この会話",
       "model": "モデル",
-      "newChat": "最初のメッセージを送信すると、この会話のペルソナを切り替えられます。"
+      "config": "設定プロファイル",
+      "persona": "ペルソナ",
+      "defaultPersona": "デフォルト（{name}）",
+      "noPersona": "ペルソナなし",
+      "newChat": "最初のメッセージを送信すると、この会話のペルソナを切り替えられます。",
+      "saveFailed": "保存に失敗しました：{error}"
     },
     "context": {
       "title": "コンテキスト",

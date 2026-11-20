@@ -2059,6 +2059,58 @@
         }
       }
     },
+    "/api/v1/chat/sessions/{session_id}/settings": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Read the config profile and persona of a ChatUI conversation",
+        "operationId": "getChatSessionSettings",
+        "x-astrbot-scope": "chat",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SessionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        },
+        "description": "**Required scope:** `chat`"
+      }
+    },
+    "/api/v1/chat/sessions/{session_id}/persona": {
+      "put": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Set the persona of a ChatUI conversation",
+        "operationId": "setChatSessionPersona",
+        "x-astrbot-scope": "chat",
+        "description": "Writes the persona session override of this conversation (the same\nsetting as Config -> Session Config Mappings -> Overrides -> Persona):\nan existing persona name, or \"[%None]\" for no persona.\n\n**Required scope:** `chat`",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SessionId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatSessionPersonaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
     "/api/v1/chat/runs/{run_id}/stream": {
       "get": {
         "tags": [
@@ -7925,6 +7977,18 @@
         "type": "object",
         "properties": {
           "display_name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChatSessionPersonaRequest": {
+        "type": "object",
+        "required": [
+          "persona_id"
+        ],
+        "properties": {
+          "persona_id": {
             "type": "string"
           }
         },

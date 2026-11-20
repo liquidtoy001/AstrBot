@@ -892,6 +892,19 @@ export const chatApi = {
       openApiV1.compactChatSession({ path: { session_id: sessionId } }),
     );
   },
+  getSessionSettings(sessionId: string) {
+    return typed<any>(
+      openApiV1.getChatSessionSettings({ path: { session_id: sessionId } }),
+    );
+  },
+  setSessionPersona(sessionId: string, personaId: string) {
+    return typed<any>(
+      openApiV1.setChatSessionPersona({
+        path: { session_id: sessionId },
+        body: { persona_id: personaId },
+      }),
+    );
+  },
   updateMessage(
     sessionId: string,
     messageId: string | number,
