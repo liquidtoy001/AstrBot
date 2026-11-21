@@ -38,10 +38,6 @@ test("workspace without asking shows as workspace; choosing workspace asks again
     // click sets plain "workspace", which asks again.
     assert.deepEqual([...h.state.MENU_MODES], ["workspace", "ask", "full"]);
     assert.equal(h.state.menuMode, "workspace");
-    assert.equal(
-      h.state.PERMISSION_MODE_ICONS.workspace_no_ask,
-      h.state.PERMISSION_MODE_ICONS.workspace,
-    );
   } finally {
     h.stop();
   }

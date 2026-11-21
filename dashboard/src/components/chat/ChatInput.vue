@@ -268,9 +268,6 @@
                 class="permission-mode-trigger"
                 :class="`mode-${permissionMode}`"
               >
-                <v-icon size="15">{{
-                  PERMISSION_MODE_ICONS[permissionMode]
-                }}</v-icon>
                 {{ tm(`permissionMode.${permissionMode}.label`) }}
               </button>
             </template>
@@ -288,9 +285,6 @@
               :active="menuMode === mode"
               @click="emit('update:permissionMode', mode)"
             >
-              <template #prepend>
-                <v-icon size="18">{{ PERMISSION_MODE_ICONS[mode] }}</v-icon>
-              </template>
               <v-list-item-title>{{
                 tm(`permissionMode.${mode}.label`)
               }}</v-list-item-title>
@@ -608,12 +602,6 @@ const emit = defineEmits<{
 const { tm } = useModuleI18n("features/chat");
 // ChatUI permission modes. "workspace_no_ask" (set by "Don't ask again in
 // this conversation" from workspace) is not a menu item of its own.
-const PERMISSION_MODE_ICONS: Record<ChatPermissionMode, string> = {
-  workspace: "mdi-folder-lock-outline",
-  workspace_no_ask: "mdi-folder-lock-outline",
-  ask: "mdi-hand-back-right-outline",
-  full: "mdi-shield-alert-outline",
-};
 const MENU_MODES: ChatPermissionMode[] = ["workspace", "ask", "full"];
 const menuMode = computed(() =>
   props.permissionMode === "workspace_no_ask"
@@ -1311,8 +1299,7 @@ defineExpose({
 }
 
 .permission-mode-trigger.mode-full,
-.permission-mode-item.mode-full :deep(.v-list-item-title),
-.permission-mode-item.mode-full :deep(.v-icon) {
+.permission-mode-item.mode-full :deep(.v-list-item-title) {
   color: rgb(var(--v-theme-warning));
 }
 
