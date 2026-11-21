@@ -145,9 +145,23 @@ The two buttons shown on hover are now **Pin** and delete. The former pencil but
 
 Pinned conversations are listed in a **Pinned** group at the top of the sidebar. A pinned conversation inside a project comes first in that project and carries a pin mark next to its title; pinned projects come first in the project list. Pins are stored on the server, so they apply in every browser and on every device, and pinning does not change a conversation's last-activity time.
 
-Sidebar groups: **Pinned** at the top (only when something is pinned), then **Projects**, then **Recent conversations** (formerly **Conversations**; it lists the conversations that are in no project). A project name is shown in larger bold text and the conversations inside it are indented in smaller text; a project row no longer shows the default folder icon, while an emoji you chose is still shown.
+Sidebar groups: **Pinned** at the top (only when something is pinned), then **Projects**, then **Recent conversations** (formerly **Conversations**; it lists the conversations that are in no project). The three group titles are shown in bold; a project row shows only the project name, without the folder icon or emoji; the conversations inside a project are indented in smaller text.
 
 Outside the sidebar (messages, the input box and so on) the browser's default right-click menu still applies, for copying, pasting and similar actions.
+
+### Viewing bot sessions (read-only)
+
+The top of the sidebar has two new tabs: **My chats** and **Bot sessions**.
+
+- **My chats**: the previous content, that is the pinned conversations, projects and recent conversations you created in ChatUI.
+- **Bot sessions**: the bot's sessions on other platforms (QQ, Telegram and so on), in three groups, **Private chats**, **Group chats** and **Other**, ordered by latest activity, with the platform ID after each name.
+
+Opening a bot session shows its conversation on the right, for viewing only:
+
+- It shows the context the model sees in that session, not the full chat log. Earlier messages are missing after the context was compacted or reset, and messages that did not wake the bot are not included.
+- When a session has several conversations, the most recently active one is shown; switch with the select box above the messages.
+- You cannot send messages from here, nor edit or delete. To change the title or persona, or to delete, keep using **Data & Logs → Conversations**.
+- Bot sessions cannot be pinned or put into a project.
 
 ### Shared memory in a project
 

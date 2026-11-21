@@ -127,6 +127,8 @@
 - Fixed: a toast shown while the previous one was still visible (for example the second of two quick conversation moves) never disappeared on its own.
 - 侧边栏里项目内的对话与普通对话使用同一种行样式；项目的删除按钮提示由「删除此对话」改为「删除项目」。
 - Conversations inside a project now use the same row style as other sidebar conversations; the tooltip of a project's delete button changed from "Delete this conversation" to "Delete project".
-- 侧边栏分组调整：「对话」分组改名为「最近会话」（只列不在任何项目里的对话）；项目行不再显示默认的文件夹图标（自己选的表情仍然显示），项目名加大加粗，项目内的对话缩进并用小一号的字。
-- Sidebar grouping: the **Conversations** group is renamed **Recent conversations** (it lists the conversations that are in no project); a project row no longer shows the default folder icon (an emoji you chose is still shown), the project name is larger and bold, and conversations inside a project are indented in smaller text.
+- 侧边栏分组调整：「对话」分组改名为「最近会话」（只列不在任何项目里的对话）；分组标题加粗；项目行只显示项目名，不再显示文件夹图标或表情；项目内的对话缩进并用小一号的字。
+- Sidebar grouping: the **Conversations** group is renamed **Recent conversations** (it lists the conversations that are in no project); group titles are bold; a project row shows only the project name, without the folder icon or emoji; and conversations inside a project are indented in smaller text.
+- ChatUI 侧边栏顶部新增「我的对话 / 机器人会话」两个标签。「机器人会话」列出机器人在其他平台上的私聊和群聊，点开后只读显示该会话的模型上下文（不是完整聊天记录），不能发送消息。原来的侧边栏内容在「我的对话」标签下。
+- The ChatUI sidebar has two new tabs at the top, **My chats** and **Bot sessions**. **Bot sessions** lists the bot's private and group chats on other platforms; opening one shows that session's model context read-only (not the full chat log), and nothing can be sent from there. The previous sidebar content is under **My chats**.
 
