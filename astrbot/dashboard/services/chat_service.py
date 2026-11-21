@@ -2014,6 +2014,8 @@ class ChatService:
                     "display_name": session.display_name,
                     "workspace_path": session.workspace_path,
                     "pinned": session.pinned,
+                    "project_id": item["project_id"],
+                    "project_title": item["project_title"],
                     "is_group": session.is_group,
                     "created_at": to_utc_isoformat(session.created_at),
                     "updated_at": to_utc_isoformat(session.updated_at),

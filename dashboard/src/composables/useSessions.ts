@@ -11,6 +11,9 @@ export interface Session {
     workspace_path?: string | null;
     // Listed before the other conversations.
     pinned?: boolean;
+    // Set when a pinned conversation listed in the sidebar is in a project.
+    project_id?: string | null;
+    project_title?: string | null;
     updated_at: string;
     platform_id: string;
     creator: string;

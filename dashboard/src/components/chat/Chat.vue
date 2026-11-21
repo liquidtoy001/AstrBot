@@ -158,6 +158,7 @@
             :title="sessionTitle(session)"
             :active="!isProviderWorkspace && currSessionId === session.session_id"
             :running="isSessionRunning(session.session_id)"
+            :note="session.project_title || ''"
             pinned
             @select="selectSession(session.session_id)"
             @toggle-pin="toggleSessionPin(session)"
@@ -1804,6 +1805,8 @@ async function saveSessionEdit(data: SessionEditData) {
 function sessionProjectId(sessionId: string) {
   return (
     sessionProjects[sessionId]?.project_id ||
+    sessions.value.find((session) => session.session_id === sessionId)
+      ?.project_id ||
     Object.keys(projectSessionsById.value).find((projectId) =>
       projectSessionsById.value[projectId].some(
         (session) => session.session_id === sessionId,
@@ -1877,8 +1880,13 @@ async function toggleSessionPin(session: SidebarSession) {
     toast.error(tm("conversation.updateFailed"));
     return;
   }
+  // A pinned conversation is listed at the top of the sidebar and, when it
+  // is in a project, first in that project as well.
   const projectId = sessionProjectId(session.session_id);
-  await (projectId ? loadProjectSessions(projectId) : getSessions());
+  await Promise.all([
+    getSessions(),
+    ...(projectId ? [loadProjectSessions(projectId)] : []),
+  ]);
 }
 
 async function toggleProjectPin(project: Project) {
@@ -3085,22 +3093,22 @@ async function stopCurrentSession() {
   gap: 2px;
 }
 
+/* Text tabs in the type of the group titles, the active one underlined. */
 .sidebar-tabs {
   display: flex;
-  gap: 4px;
-  margin: 4px 16px 6px;
-  padding: 3px;
-  border-radius: var(--astrbot-radius-navigation);
-  background: var(--chat-session-active-bg);
+  gap: 16px;
+  margin: 6px 16px 4px;
+  padding: 0 10px;
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.1);
 }
 
 .sidebar-tab {
-  flex: 1;
-  min-height: 26px;
-  border-radius: calc(var(--astrbot-radius-navigation) - 2px);
+  min-height: 30px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
   color: var(--chat-muted);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -3109,7 +3117,7 @@ async function stopCurrentSession() {
 }
 
 .sidebar-tab.active {
-  background: rgb(var(--v-theme-surface));
+  border-bottom-color: rgb(var(--v-theme-primary));
   color: rgb(var(--v-theme-on-surface));
 }
 
@@ -3117,9 +3125,12 @@ async function stopCurrentSession() {
   min-height: 36px;
 }
 
+/* Set apart from the lists that scroll above it. */
 .sidebar-footer {
   margin-top: auto;
-  padding: 10px 16px 14px;
+  padding: 8px 16px 10px;
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  background: rgba(var(--v-theme-on-surface), 0.03);
 }
 
 .chat-sidebar.collapsed .sidebar-footer {

@@ -2331,7 +2331,14 @@ class SQLiteDatabase(BaseDatabase):
         if platform_id:
             query = query.where(PlatformSession.platform_id == platform_id)
         if exclude_project_sessions:
-            query = query.where(col(ChatUIProject.project_id).is_(None))
+            # A pinned conversation stays listed although it is in a project,
+            # so the sidebar can show every pinned conversation in one place.
+            query = query.where(
+                or_(
+                    col(ChatUIProject.project_id).is_(None),
+                    col(PlatformSession.pinned),
+                )
+            )
 
         return query
 

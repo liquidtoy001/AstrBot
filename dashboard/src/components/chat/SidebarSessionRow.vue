@@ -12,6 +12,7 @@
     @contextmenu.prevent="emit('menu', $event)"
   >
     <span class="session-row-title">{{ title }}</span>
+    <span v-if="note" class="session-row-note">{{ note }}</span>
     <Pin
       v-if="pinned && pinMark"
       class="session-row-pin-mark"
@@ -69,8 +70,17 @@ withDefaults(
     pinMark?: boolean;
     // Inside a project: smaller text under the project's name.
     nested?: boolean;
+    // Muted text after the title, such as the project of a pinned conversation.
+    note?: string;
   }>(),
-  { active: false, running: false, pinned: false, pinMark: false, nested: false },
+  {
+    active: false,
+    running: false,
+    pinned: false,
+    pinMark: false,
+    nested: false,
+    note: "",
+  },
 );
 
 const emit = defineEmits<{
@@ -130,6 +140,16 @@ const { tm } = useModuleI18n("features/chat");
   font-weight: 400;
 }
 
+.session-row-note {
+  flex: 0 1 auto;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--chat-muted);
+  font-size: 12px;
+}
+
 .session-row-pin-mark {
   flex: 0 0 auto;
   color: var(--chat-muted);
@@ -162,7 +182,9 @@ const { tm } = useModuleI18n("features/chat");
 .session-row:hover .session-row-progress,
 .session-row:focus-within .session-row-progress,
 .session-row:hover .session-row-pin-mark,
-.session-row:focus-within .session-row-pin-mark {
+.session-row:focus-within .session-row-pin-mark,
+.session-row:hover .session-row-note,
+.session-row:focus-within .session-row-note {
   visibility: hidden;
 }
 
