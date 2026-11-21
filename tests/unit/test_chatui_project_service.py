@@ -232,6 +232,7 @@ async def test_api_key_project_defaults_to_managed_project_workspace():
         description=None,
         workspace_type="project",
         workspace_path=None,
+        shared_memory=False,
     )
 
 
