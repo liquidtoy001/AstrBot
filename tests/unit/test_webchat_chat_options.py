@@ -38,6 +38,29 @@ def _event(payload):
     return adapter.create_event(message)
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (400_000, 400_000),
+        (True, None),
+        (False, None),
+        (0, None),
+        (-5, None),
+        ("400000", None),
+        (1.5, None),
+        (None, None),
+    ],
+)
+def test_compact_threshold_accepts_only_positive_integers(value, expected):
+    resolved = resolve_webchat_chat_options({"compact_threshold": value})
+    assert resolved.pop("compact_threshold") == expected
+    # The other options stay unset.
+    assert set(resolved.values()) == {None}
+    assert _event({"compact_threshold": value}).get_extra("compact_threshold") == (
+        expected
+    )
+
+
 def test_adapter_puts_options_on_the_event():
     from astrbot.core.astr_agent_runtime.permission_mode import _conversation_modes
 
@@ -75,6 +98,8 @@ async def test_adapter_puts_options_on_the_event_and_the_request():
 def test_request_models_reject_unknown_options():
     with pytest.raises(ValidationError):
         ChatThreadMessageRequest(message="hi", permission_mode="root")
+    with pytest.raises(ValidationError):
+        ChatThreadMessageRequest(message="hi", compact_threshold=0)
 
 
 @pytest.mark.parametrize(
@@ -93,7 +118,11 @@ def test_openapi_contract_accepts_the_options(schema_name):
             "components": spec["components"],
         }
     )
-    payload = {"permission_mode": "workspace", "fast_mode": True}
+    payload = {
+        "permission_mode": "workspace",
+        "fast_mode": True,
+        "compact_threshold": 400_000,
+    }
     if schema_name != "ChatMessageRegenerateRequest":
         payload["message"] = "hello"
     validator.validate(payload)
@@ -102,6 +131,10 @@ def test_openapi_contract_accepts_the_options(schema_name):
     assert list(validator.iter_errors({**payload, "reasoning_effort": "xhigh"}))
     assert list(validator.iter_errors({**payload, "permission_mode": "root"}))
     assert list(validator.iter_errors({**payload, "fast_mode": "yes"}))
+    for invalid in (0, -1, True, "32000", 1.5):
+        assert list(validator.iter_errors({**payload, "compact_threshold": invalid})), (
+            invalid
+        )
 
 
 @pytest.mark.asyncio
@@ -114,7 +147,11 @@ async def test_thread_forwards_chat_options():
             )
         )
     )
-    options = {"permission_mode": "workspace", "fast_mode": True}
+    options = {
+        "permission_mode": "workspace",
+        "fast_mode": True,
+        "compact_threshold": 400_000,
+    }
     result = await service.prepare_thread_chat_payload(
         "alice", {"thread_id": "t1", "message": [], **options}
     )
@@ -188,7 +225,11 @@ async def test_regenerate_forwards_chat_options():
             ),
         ),
     )
-    options = {"permission_mode": "workspace", "fast_mode": True}
+    options = {
+        "permission_mode": "workspace",
+        "fast_mode": True,
+        "compact_threshold": 400_000,
+    }
     payload = await service.prepare_regenerate_message_payload(
         "alice", {"session_id": "s1", "message_id": 2, **options}
     )

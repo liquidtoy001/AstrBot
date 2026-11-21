@@ -1294,3 +1294,28 @@ class TestContextManager:
         assert rounds[0][0] is messages[0]
         assert rounds[1][0] is messages[1]
         assert rounds[2][0] is messages[3]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("trigger", "compressed"), [(0, False), (50, True), (500, False)]
+)
+@pytest.mark.parametrize("window", [0, 1000])
+async def test_trigger_tokens_replace_the_window_ratio(trigger, compressed, window):
+    """A positive trigger compresses above that many tokens, whatever the window."""
+    config = ContextConfig(
+        max_context_tokens=window,
+        trigger_tokens=trigger,
+        custom_token_counter=CharTokenCounter(),
+    )
+    manager = ContextManager(config)
+    messages = [
+        Message(role="user", content="a" * 40),
+        Message(role="assistant", content="b" * 40),
+        Message(role="user", content="c" * 20),
+    ]
+    manager.compressor = AsyncMock(return_value=messages[-1:])
+    manager.compressor.should_compress = lambda *args: False
+    result = await manager.process(messages)
+    assert (result == messages[-1:]) is compressed
+    assert manager.compressor.await_count == (1 if compressed else 0)

@@ -1247,6 +1247,43 @@ async def test_same_tool_streak_resets_after_switching_tools(
 
 
 @pytest.mark.asyncio
+async def test_compaction_is_counted_before_next_provider_call(
+    runner, mock_provider, mock_tool_executor, mock_hooks
+):
+    observed = []
+
+    async def reply(**kwargs):
+        observed.append(runner.compaction_count)
+        return LLMResponse(
+            role="assistant",
+            completion_text="done",
+            usage=TokenUsage(input_other=10, output=2),
+        )
+
+    mock_provider.text_chat = reply
+    request = ProviderRequest(
+        prompt="next",
+        contexts=[
+            {"role": role, "content": "history " * 100}
+            for role in ("user", "assistant", "user", "assistant")
+        ],
+    )
+    await runner.reset(
+        provider=mock_provider,
+        request=request,
+        run_context=ContextWrapper(context=None),
+        tool_executor=mock_tool_executor,
+        agent_hooks=mock_hooks,
+        max_context_tokens=100,
+        truncate_turns=1,
+    )
+    assert runner.compaction_count == 0
+    await collect_events(runner.step())
+    assert observed == [1]
+
+
+
+@pytest.mark.asyncio
 async def test_fallback_provider_used_when_primary_raises(
     runner, provider_request, mock_tool_executor, mock_hooks
 ):

@@ -5275,3 +5275,28 @@ async def test_v1_regenerate_rejects_unknown_reasoning_effort(
 
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"][-1] == "reasoning_effort"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "method,suffix,payload",
+    [
+        ("POST", "compact", None),
+    ],
+)
+async def test_session_controls_require_login_and_ownership(
+    asgi_client, asgi_app, temp_db, method, suffix, payload
+):
+    await temp_db.initialize()
+    await temp_db.create_platform_session(
+        creator="someone-else", session_id="private-controls"
+    )
+    asgi_app.state.services.chat.db = temp_db
+    url = f"/api/v1/chat/sessions/private-controls/{suffix}"
+    anonymous = await asgi_client.request(method, url, json=payload)
+    assert anonymous.status_code == 401
+    foreign = await asgi_client.request(
+        method, url, json=payload, headers=_jwt_headers()
+    )
+    assert foreign.json()["status"] == "error"
+    assert "Permission denied" in foreign.json()["message"]
