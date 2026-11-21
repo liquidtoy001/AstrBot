@@ -81,6 +81,21 @@
                     </div>
                 </div>
 
+                <div class="project-field">
+                    <v-switch
+                        v-model="form.shared_memory"
+                        :label="tm('project.sharedMemory.label')"
+                        color="primary"
+                        density="compact"
+                        hide-details
+                        inset
+                    />
+                    <p class="field-hint">{{ tm('project.sharedMemory.hint') }}</p>
+                    <p v-if="form.shared_memory && props.project?.memory_path" class="field-hint memory-path">
+                        {{ props.project.memory_path }}
+                    </p>
+                </div>
+
                 <div class="more-settings">
                     <button
                         type="button"
@@ -150,6 +165,9 @@ export interface Project {
     workspace_type?: WorkspaceType;
     workspace_path?: string | null;
     resolved_workspace_path?: string | null;
+    shared_memory?: boolean;
+    // Location of the shared MEMORY.md, set while shared memory is on.
+    memory_path?: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -160,6 +178,7 @@ export interface ProjectFormData {
     description: string;
     workspace_type: WorkspaceType;
     workspace_path: string;
+    shared_memory: boolean;
 }
 
 interface Props {
@@ -194,7 +213,8 @@ const form = ref<ProjectFormData>({
     title: '',
     description: '',
     workspace_type: 'project',
-    workspace_path: ''
+    workspace_path: '',
+    shared_memory: false
 });
 const workspaceTypeItems = computed<{ label: string; value: WorkspaceType }[]>(() => [
     { label: tm('project.workspace.project'), value: 'project' },
@@ -230,7 +250,8 @@ watch(() => props.modelValue, async (newVal) => {
                 title: props.project.title,
                 description: props.project.description || '',
                 workspace_type: props.project.workspace_type || 'session',
-                workspace_path: props.project.workspace_path || ''
+                workspace_path: props.project.workspace_path || '',
+                shared_memory: props.project.shared_memory === true
             };
         } else {
             isEditing.value = false;
@@ -239,7 +260,8 @@ watch(() => props.modelValue, async (newVal) => {
                 title: '',
                 description: '',
                 workspace_type: 'project',
-                workspace_path: ''
+                workspace_path: '',
+                shared_memory: false
             };
         }
 
@@ -377,6 +399,18 @@ function handleSave() {
     margin-bottom: 6px;
     color: var(--project-muted);
     font-size: 0.78rem;
+}
+
+.field-hint {
+    margin: 2px 0 0;
+    color: var(--project-muted);
+    font-size: 0.76rem;
+    line-height: 1.45;
+}
+
+.memory-path {
+    font-family: monospace;
+    word-break: break-all;
 }
 
 .project-select-trigger {

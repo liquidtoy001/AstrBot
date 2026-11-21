@@ -300,6 +300,13 @@ class SQLiteDatabase(BaseDatabase):
             await conn.execute(
                 text("ALTER TABLE chatui_projects ADD COLUMN workspace_path VARCHAR")
             )
+        if "shared_memory" not in columns:
+            await conn.execute(
+                text(
+                    "ALTER TABLE chatui_projects "
+                    "ADD COLUMN shared_memory BOOLEAN NOT NULL DEFAULT 0"
+                )
+            )
         await conn.execute(
             text(
                 "UPDATE chatui_projects SET "
@@ -2635,6 +2642,7 @@ class SQLiteDatabase(BaseDatabase):
         description: str | None = None,
         workspace_type: str = "session",
         workspace_path: str | None = None,
+        shared_memory: bool = False,
     ) -> ChatUIProject:
         """Create a new ChatUI project."""
         async with self.get_db() as session:
@@ -2647,6 +2655,7 @@ class SQLiteDatabase(BaseDatabase):
                     description=description,
                     workspace_type=workspace_type,
                     workspace_path=workspace_path,
+                    shared_memory=shared_memory,
                 )
                 session.add(project)
                 await session.flush()
@@ -2691,6 +2700,7 @@ class SQLiteDatabase(BaseDatabase):
         description: str | None = None,
         workspace_type: str | None = None,
         workspace_path: str | None = None,
+        shared_memory: bool | None = None,
     ) -> None:
         """Update a ChatUI project."""
         async with self.get_db() as session:
@@ -2706,6 +2716,8 @@ class SQLiteDatabase(BaseDatabase):
                 if workspace_type is not None:
                     values["workspace_type"] = workspace_type
                     values["workspace_path"] = workspace_path
+                if shared_memory is not None:
+                    values["shared_memory"] = shared_memory
 
                 await session.execute(
                     update(ChatUIProject)

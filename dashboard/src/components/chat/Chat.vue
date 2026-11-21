@@ -1817,6 +1817,7 @@ async function saveProject(formData: ProjectFormData, projectId?: string) {
         formData.description,
         formData.workspace_type,
         formData.workspace_path,
+        formData.shared_memory,
       );
     } else {
       await createProject(
@@ -1825,6 +1826,7 @@ async function saveProject(formData: ProjectFormData, projectId?: string) {
         formData.description,
         formData.workspace_type,
         formData.workspace_path,
+        formData.shared_memory,
       );
     }
     projectDialogOpen.value = false;

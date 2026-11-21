@@ -188,6 +188,8 @@ export interface Project {
   workspace_type?: "session" | "project" | "custom";
   workspace_path?: string | null;
   resolved_workspace_path?: string | null;
+  shared_memory?: boolean;
+  memory_path?: string | null;
   created_at: string;
   updated_at: string;
 }

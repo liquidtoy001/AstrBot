@@ -165,6 +165,28 @@ def resolve_project_workspace_root(project: Any, *, fallback_umo: str) -> Path:
     return resolved
 
 
+def project_memory_file(project: Any) -> Path:
+    """Return the memory file shared by the conversations of a project.
+
+    Args:
+        project: Project-like object with an ID and workspace fields.
+
+    Returns:
+        ``MEMORY.md`` in the project's shared or custom workspace. A project
+        whose conversations keep separate workspaces uses the project's default
+        directory, so there is still one file for all of them.
+
+    Raises:
+        ValueError: If the project's workspace cannot be resolved.
+    """
+    # The fallback names the project's default directory, which is used when
+    # the project has no directory of its own.
+    root = resolve_project_workspace_root(
+        project, fallback_umo=f"project_{project.project_id}"
+    )
+    return root / "MEMORY.md"
+
+
 def parse_webchat_umo(umo: str) -> tuple[str, str] | None:
     """Extract creator and session ID from a webchat UMO.
 

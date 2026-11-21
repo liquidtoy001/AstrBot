@@ -208,6 +208,10 @@
     "emoji": "Icon (Emoji)",
     "description": "Description (Optional)",
     "moreSettings": "More settings",
+    "sharedMemory": {
+      "label": "Share memory between conversations",
+      "hint": "When on, every conversation in the project reads MEMORY.md in the project folder, and the Agent can write things worth remembering into it. You can also edit the file yourself."
+    },
     "workspace": {
       "type": "Workspace",
       "session": "Per-session workspace",

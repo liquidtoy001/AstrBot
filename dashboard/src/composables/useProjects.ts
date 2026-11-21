@@ -37,7 +37,8 @@ export function useProjects() {
         emoji?: string,
         description?: string,
         workspaceType: WorkspaceType = 'project',
-        workspacePath?: string
+        workspacePath?: string,
+        sharedMemory?: boolean
     ) {
         try {
             const res = await chatApi.createProject({
@@ -45,7 +46,8 @@ export function useProjects() {
                 emoji: emoji || '📁',
                 description,
                 workspace_type: workspaceType,
-                workspace_path: workspacePath
+                workspace_path: workspacePath,
+                shared_memory: sharedMemory
             });
             if (res.data.status === 'ok') {
                 await getProjects();
@@ -64,7 +66,8 @@ export function useProjects() {
         emoji?: string,
         description?: string,
         workspaceType?: WorkspaceType,
-        workspacePath?: string
+        workspacePath?: string,
+        sharedMemory?: boolean
     ) {
         try {
             const res = await chatApi.updateProject(projectId, {
@@ -72,7 +75,8 @@ export function useProjects() {
                 emoji,
                 description,
                 workspace_type: workspaceType,
-                workspace_path: workspacePath
+                workspace_path: workspacePath,
+                shared_memory: sharedMemory
             });
             if (res.data.status === 'ok') {
                 await getProjects();

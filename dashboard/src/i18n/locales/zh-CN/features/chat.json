@@ -208,6 +208,10 @@
     "emoji": "图标 (Emoji)",
     "description": "项目描述（可选）",
     "moreSettings": "更多设置",
+    "sharedMemory": {
+      "label": "项目内对话共享记忆",
+      "hint": "打开后，项目里的每个对话都会读取项目目录里的 MEMORY.md，Agent 可以把需要长期记住的内容写进去。你也可以直接编辑这个文件。"
+    },
     "workspace": {
       "type": "工作区",
       "session": "按会话分开",

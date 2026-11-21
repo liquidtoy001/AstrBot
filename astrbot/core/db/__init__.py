@@ -971,6 +971,7 @@ class BaseDatabase(abc.ABC):
         description: str | None = None,
         workspace_type: str = "session",
         workspace_path: str | None = None,
+        shared_memory: bool = False,
     ) -> ChatUIProject:
         """Create a new ChatUI project."""
         ...
@@ -999,6 +1000,7 @@ class BaseDatabase(abc.ABC):
         description: str | None = None,
         workspace_type: str | None = None,
         workspace_path: str | None = None,
+        shared_memory: bool | None = None,
     ) -> None:
         """Update a ChatUI project."""
         ...

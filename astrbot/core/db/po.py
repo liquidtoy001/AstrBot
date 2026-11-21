@@ -587,6 +587,8 @@ class ChatUIProject(TimestampMixin, SQLModel, table=True):
     """Workspace mode: session, project, or custom"""
     workspace_path: str | None = Field(default=None, max_length=1024)
     """Custom workspace path"""
+    shared_memory: bool = Field(default=False, nullable=False)
+    """Whether conversations in the project share the project's MEMORY.md"""
 
     __table_args__ = (
         UniqueConstraint(

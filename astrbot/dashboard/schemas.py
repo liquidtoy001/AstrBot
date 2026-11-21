@@ -127,6 +127,12 @@ class ChatProjectRequest(OpenModel):
         default=None,
         description="Dashboard-only custom workspace path.",
     )
+    shared_memory: bool | None = Field(
+        default=None,
+        description=(
+            "Whether conversations in the project share the project's MEMORY.md file."
+        ),
+    )
 
 
 class ChatProjectSessionRequest(OpenModel):

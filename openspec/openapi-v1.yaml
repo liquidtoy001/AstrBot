@@ -6682,6 +6682,9 @@ components:
         workspace_path:
           type: string
           description: Dashboard-only custom workspace path. API key callers cannot set this field.
+        shared_memory:
+          type: boolean
+          description: Whether conversations in the project share the project's MEMORY.md file.
       additionalProperties: false
 
     MessagePart:

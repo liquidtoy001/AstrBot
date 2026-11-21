@@ -12,6 +12,7 @@ from astrbot.core.workspace import (
     WORKSPACE_TYPE_SESSION,
     normalize_project_workspace_type,
     normalize_workspace_path,
+    project_memory_file,
     resolve_project_workspace_root,
     workspace_path_to_root,
 )
@@ -56,6 +57,7 @@ class ChatUIProjectService:
             description=description,
             workspace_type=workspace_type,
             workspace_path=workspace_path,
+            shared_memory=payload.get("shared_memory") is True,
         )
         return self._serialize_project(project)
 
@@ -114,6 +116,11 @@ class ChatUIProjectService:
             description=payload.get("description"),
             workspace_type=workspace_type,
             workspace_path=workspace_path,
+            shared_memory=(
+                payload["shared_memory"]
+                if isinstance(payload.get("shared_memory"), bool)
+                else None
+            ),
         )
 
     async def delete_project(self, username: str, project_id: str | None) -> None:
@@ -491,6 +498,13 @@ class ChatUIProjectService:
                 )
             except ValueError:
                 resolved_workspace_path = None
+        shared_memory = bool(getattr(project, "shared_memory", False))
+        memory_path = None
+        if shared_memory:
+            try:
+                memory_path = str(project_memory_file(project))
+            except ValueError:
+                memory_path = None
         return {
             "project_id": project.project_id,
             "title": project.title,
@@ -499,6 +513,8 @@ class ChatUIProjectService:
             "workspace_type": workspace_type,
             "workspace_path": workspace_path,
             "resolved_workspace_path": resolved_workspace_path,
+            "shared_memory": shared_memory,
+            "memory_path": memory_path,
             "created_at": to_utc_isoformat(project.created_at),
             "updated_at": to_utc_isoformat(project.updated_at),
         }

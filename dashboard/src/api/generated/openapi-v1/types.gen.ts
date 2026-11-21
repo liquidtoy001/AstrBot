@@ -150,6 +150,10 @@ export type ChatProjectRequest = {
      * Dashboard-only custom workspace path. API key callers cannot set this field.
      */
     workspace_path?: string;
+    /**
+     * Whether conversations in the project share the project's MEMORY.md file.
+     */
+    shared_memory?: boolean;
 };
 
 /**
