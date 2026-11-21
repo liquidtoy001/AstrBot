@@ -26,8 +26,8 @@ function mountList(activeUmos) {
 
 test("the bot session list groups other platforms' sessions and leaves ChatUI's out", async () => {
   const info = (umo, display_name) => {
-    const [platform, message_type] = umo.split(":");
-    return { umo, platform, message_type, display_name };
+    const [platform, message_type, session_id] = umo.split(":");
+    return { umo, platform, message_type, session_id, display_name };
   };
   const list = mountList(async () => ({
     data: {
@@ -40,6 +40,10 @@ test("the bot session list groups other platforms' sessions and leaves ChatUI's 
           info("telegram:FriendMessage:7", "Bob"),
           info("qq:FriendMessage:42", "Carol"),
           info("slack:OtherMessage:c1", "Channel"),
+          // Sessions without a learned name: the server falls back to the UMO,
+          // and an old missing name may be stored as the text "None".
+          info("qq:GroupMessage:555", "qq:GroupMessage:555"),
+          info("qq:FriendMessage:777", "None"),
         ],
       },
     },
@@ -53,8 +57,8 @@ test("the bot session list groups other platforms' sessions and leaves ChatUI's 
         group.sessions.map((session) => session.display_name),
       ]),
       [
-        ["private", ["Bob", "Carol"]],
-        ["group", ["Dev group"]],
+        ["private", ["Bob", "Carol", "777"]],
+        ["group", ["Dev group", "555"]],
         ["other", ["Channel"]],
       ],
     );
@@ -241,4 +245,59 @@ test("the sidebar rows choose the list and leave the model settings", () => {
     .map((marker) => template.indexOf(marker));
   assert.ok(order.every((index, i) => index > 0 && (i === 0 || index > order[i - 1])));
   assert.match(script, /\{ key: "bots", icon: Bot \},\s*\{ key: "chats", icon: MessagesSquare \}/);
+});
+
+test("a long bot session shows its latest messages first and earlier ones on request", async () => {
+  // 450 made-up messages, numbered so the shown range can be checked.
+  const history = Array.from({ length: 450 }, (_, index) => ({
+    role: index % 2 ? "assistant" : "user",
+    content: `message ${index}`,
+  }));
+  const component = loadSource(
+    new URL("../src/components/chat/BotSessionView.vue", import.meta.url),
+    {
+      "@/api/v1": {
+        conversationApi: {
+          list: async () => ({
+            data: {
+              status: "ok",
+              data: { conversations: [{ user_id: "qq:GroupMessage:1", cid: "c1" }] },
+            },
+          }),
+          get: async () => ({ data: { status: "ok", data: { history } } }),
+        },
+      },
+      "@/i18n/composables": i18n,
+      "@/components/chat/ChatLoadError.vue": {},
+      "@/components/conversation/ConversationHistoryPreview.vue": {},
+    },
+    { console: silent },
+  ).default;
+  const props = reactive({
+    session: {
+      umo: "qq:GroupMessage:1",
+      platform: "qq",
+      message_type: "GroupMessage",
+      session_id: "1",
+      display_name: "Group",
+    },
+  });
+  const view = mountSetup({ setup: (_, ctx) => component.setup(props, ctx) });
+  try {
+    await settle();
+    await settle();
+    const contents = () => view.state.shownMessages.map((message) => message.content);
+    assert.equal(view.state.shownMessages.length, 200);
+    assert.equal(contents()[0], "message 250");
+    assert.equal(contents().at(-1), "message 449");
+    assert.equal(view.state.hiddenCount, 250);
+
+    view.state.shownCount += view.state.PAGE_SIZE;
+    assert.equal(view.state.hiddenCount, 50);
+    view.state.shownCount += view.state.PAGE_SIZE;
+    assert.equal(view.state.hiddenCount, 0);
+    assert.equal(contents()[0], "message 0");
+  } finally {
+    view.stop();
+  }
 });
