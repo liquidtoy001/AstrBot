@@ -176,6 +176,7 @@ class SQLiteDatabase(BaseDatabase):
             await self._ensure_persona_custom_error_message_column(conn)
             await self._ensure_platform_message_history_event_columns(conn)
             await self._ensure_chatui_project_workspace_columns(conn)
+            await self._ensure_platform_session_workspace_column(conn)
             # The table-level unique constraint already provides an index for UMO
             # lookups. Older schemas also created this redundant explicit index.
             await conn.execute(text("DROP INDEX IF EXISTS ix_umo_aliases_umo"))
@@ -310,6 +311,14 @@ class SQLiteDatabase(BaseDatabase):
                 "AND (LOWER(workspace_type) = 'custom' OR workspace_path IS NOT NULL)"
             )
         )
+
+    async def _ensure_platform_session_workspace_column(self, conn) -> None:
+        """Ensure platform_sessions has the per-conversation workspace column."""
+        result = await conn.execute(text("PRAGMA table_info(platform_sessions)"))
+        if "workspace_path" not in {row[1] for row in result.fetchall()}:
+            await conn.execute(
+                text("ALTER TABLE platform_sessions ADD COLUMN workspace_path VARCHAR")
+            )
 
     # ====
     # Platform Statistics
@@ -2363,14 +2372,24 @@ class SQLiteDatabase(BaseDatabase):
         self,
         session_id: str,
         display_name: str | None = None,
+        workspace_path: str | None = None,
     ) -> None:
-        """Update a Platform session's updated_at timestamp and optionally display_name."""
+        """Update a Platform session's timestamp and the given fields.
+
+        Args:
+            session_id: Platform session ID.
+            display_name: New display name, or None to keep the current one.
+            workspace_path: New workspace path, an empty string to clear it, or
+                None to keep the current one.
+        """
         async with self.get_db() as session:
             session: AsyncSession
             async with session.begin():
                 values: dict[str, T.Any] = {"updated_at": datetime.now(timezone.utc)}
                 if display_name is not None:
                     values["display_name"] = display_name
+                if workspace_path is not None:
+                    values["workspace_path"] = workspace_path or None
 
                 await session.execute(
                     update(PlatformSession)

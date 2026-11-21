@@ -477,10 +477,11 @@ async def update_chat_session(
     service: ChatService = Depends(get_service),
 ):
     return await _run(
-        lambda: service.update_session_display_name(
+        lambda: service.update_session(
             auth.username,
             session_id,
             payload.display_name,
+            payload.workspace_path,
         )
     )
 

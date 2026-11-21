@@ -211,6 +211,16 @@ async def resolve_workspace_root_for_umo(
 
         db = db_helper
 
+    # A conversation's own workspace path takes priority over its project's.
+    # API key callers may not point a workspace outside AstrBot workspaces.
+    if not creator.startswith(API_KEY_USERNAME_PREFIX):
+        session = await db.get_platform_session_by_id(session_id)
+        workspace_path = normalize_workspace_path(
+            getattr(session, "workspace_path", None)
+        )
+        if workspace_path and session.creator == creator:
+            return workspace_path_to_root(workspace_path)
+
     project = await db.get_project_by_session(session_id=session_id, creator=creator)
     if not project:
         return default_workspace_root(umo)

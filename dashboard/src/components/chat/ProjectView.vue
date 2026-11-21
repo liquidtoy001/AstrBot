@@ -43,7 +43,7 @@
             <button
               type="button"
               class="project-session-action"
-              :title="tm('conversation.editDisplayName')"
+              :title="tm('conversation.edit')"
               @click.stop="
                 $emit(
                   'editSessionTitle',

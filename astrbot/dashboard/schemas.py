@@ -140,6 +140,13 @@ class ChatSessionBatchDeleteRequest(OpenModel):
 
 class ChatSessionPatchRequest(OpenModel):
     display_name: str | None = None
+    workspace_path: str | None = Field(
+        default=None,
+        description=(
+            "Dashboard-only workspace path of this conversation; an empty "
+            "string restores the project or default workspace."
+        ),
+    )
 
 
 class ChatSessionPersonaRequest(OpenModel):

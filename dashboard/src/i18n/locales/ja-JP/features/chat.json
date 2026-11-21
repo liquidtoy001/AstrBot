@@ -126,7 +126,16 @@
     "displayName": "セッション名",
     "displayNameUpdated": "セッション名を更新しました",
     "displayNameUpdateFailed": "セッション名の更新に失敗しました",
-    "confirmDelete": "「{name}」を削除しますか？この操作は元に戻せません。"
+    "confirmDelete": "「{name}」を削除しますか？この操作は元に戻せません。",
+    "edit": "会話を編集",
+    "project": "プロジェクト",
+    "noProject": "プロジェクトなし",
+    "workspacePath": "ワークスペースのパス",
+    "workspacePathHint": "空欄の場合は、プロジェクトのワークスペースまたは既定のフォルダーを使用します。ローカルフォルダーの絶対パス、または AstrBot ワークスペースディレクトリ内のサブフォルダー名を入力できます。",
+    "updateFailed": "会話設定の保存に失敗しました",
+    "moveFailed": "会話の移動に失敗しました",
+    "movedToProject": "プロジェクト「{title}」に移動しました",
+    "movedOutOfProject": "プロジェクトから外しました"
   },
   "modes": {
     "darkMode": "ダークモードに切り替え",

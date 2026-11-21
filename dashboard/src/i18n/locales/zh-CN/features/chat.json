@@ -126,7 +126,16 @@
     "displayName": "会话名称",
     "displayNameUpdated": "会话名称已更新",
     "displayNameUpdateFailed": "更新会话名称失败",
-    "confirmDelete": "确定要删除“{name}”吗？此操作无法撤销。"
+    "confirmDelete": "确定要删除“{name}”吗？此操作无法撤销。",
+    "edit": "编辑对话",
+    "project": "所属项目",
+    "noProject": "不属于任何项目",
+    "workspacePath": "工作区路径",
+    "workspacePathHint": "留空则使用所属项目的工作区或默认目录。可填本地文件夹的绝对路径，或 AstrBot 工作区目录下的子目录名。",
+    "updateFailed": "保存对话设置失败",
+    "moveFailed": "移动对话失败",
+    "movedToProject": "已移动到项目“{title}”",
+    "movedOutOfProject": "已移出项目"
   },
   "modes": {
     "darkMode": "切换到夜间模式",

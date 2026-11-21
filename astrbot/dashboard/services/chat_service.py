@@ -59,6 +59,11 @@ from astrbot.core.utils.media_utils import (
     detect_image_mime_type_async,
 )
 from astrbot.core.utils.upload import UploadTooLargeError, save_upload_stream
+from astrbot.core.workspace import API_KEY_USERNAME_PREFIX
+from astrbot.dashboard.services.chatui_project_service import (
+    ChatUIProjectService,
+    ChatUIProjectServiceError,
+)
 from astrbot.dashboard.services.chunked_upload_service import (
     ChunkedUploadError,
     ChunkedUploadService,
@@ -2007,6 +2012,7 @@ class ChatService:
                     "platform_id": session.platform_id,
                     "creator": session.creator,
                     "display_name": session.display_name,
+                    "workspace_path": session.workspace_path,
                     "is_group": session.is_group,
                     "created_at": to_utc_isoformat(session.created_at),
                     "updated_at": to_utc_isoformat(session.updated_at),
@@ -2165,6 +2171,7 @@ class ChatService:
                 "platform_id": session.platform_id,
                 "creator": session.creator,
                 "display_name": session.display_name,
+                "workspace_path": session.workspace_path,
                 "is_group": session.is_group,
                 "created_at": to_utc_isoformat(session.created_at),
                 "updated_at": to_utc_isoformat(session.updated_at),
@@ -2529,21 +2536,52 @@ class ChatService:
             self._dashboard_payload(payload),
         )
 
-    async def update_session_display_name(
+    async def update_session(
         self,
         username: str,
         session_id: str,
         display_name,
+        workspace_path: str | None = None,
     ) -> dict:
+        """Update the display name and workspace path of an owned session.
+
+        Args:
+            username: Dashboard username or API key identity.
+            session_id: ChatUI session ID.
+            display_name: New display name, or None to keep the current one.
+            workspace_path: Workspace path of this conversation, written like a
+                project's custom workspace path. An empty string restores the
+                project or default workspace; None keeps the current value.
+
+        Returns:
+            An empty dict.
+
+        Raises:
+            ChatServiceError: If the session is inaccessible or the workspace
+                path is not allowed or not usable.
+        """
         session = await self.db.get_platform_session_by_id(session_id)
         if not session:
             raise ChatServiceError(f"Session {session_id} not found")
         if session.creator != username:
             raise ChatServiceError("Permission denied")
 
+        if workspace_path is not None:
+            workspace_path = workspace_path.strip()
+            if workspace_path and username.startswith(API_KEY_USERNAME_PREFIX):
+                raise ChatServiceError("API key sessions cannot use custom workspaces")
+            if workspace_path:
+                try:
+                    ChatUIProjectService._normalize_workspace_config(
+                        {"workspace_type": "custom", "workspace_path": workspace_path}
+                    )
+                except ChatUIProjectServiceError as exc:
+                    raise ChatServiceError(str(exc)) from exc
+
         await self.db.update_platform_session(
             session_id=session_id,
             display_name=display_name,
+            workspace_path=workspace_path,
         )
         return {}
 
@@ -2559,9 +2597,7 @@ class ChatService:
             raise ChatServiceError("Missing key: session_id")
         if display_name is None:
             raise ChatServiceError("Missing key: display_name")
-        return await self.update_session_display_name(
-            username, session_id, display_name
-        )
+        return await self.update_session(username, session_id, display_name)
 
     @staticmethod
     def _dashboard_payload(payload: object) -> dict:

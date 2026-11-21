@@ -186,8 +186,9 @@ class ChatUIProjectService:
             username: Dashboard username.
             project_id: ChatUI project ID.
             relative_path: Directory path relative to the workspace root.
-            session_id: Optional owned project session for per-session workspaces.
-                Omitted or empty values retain the legacy default workspace.
+            session_id: Optional owned project session, for per-session workspaces
+                and for a conversation with its own workspace path. Omitted or
+                empty values retain the legacy default workspace.
 
         Returns:
             Directory metadata and its direct child entries.
@@ -217,6 +218,23 @@ class ChatUIProjectService:
                 project,
                 fallback_umo=fallback_umo,
             )
+            # Show the conversation's own workspace when it has one. Other
+            # session IDs keep being ignored for shared workspaces.
+            if session_id and not username.startswith(API_KEY_USERNAME_PREFIX):
+                session = await self.db.get_platform_session_by_id(session_id)
+                session_project = await self.db.get_project_by_session(
+                    session_id, username
+                )
+                workspace_path = normalize_workspace_path(
+                    getattr(session, "workspace_path", None)
+                )
+                if (
+                    workspace_path
+                    and session.creator == username
+                    and session_project
+                    and session_project.project_id == project_id
+                ):
+                    resolved_workspace_root = workspace_path_to_root(workspace_path)
         except ValueError as exc:
             raise ChatUIProjectServiceError(str(exc)) from exc
         workspace_root_path = os.path.normcase(
@@ -295,8 +313,9 @@ class ChatUIProjectService:
             username: Dashboard username.
             project_id: ChatUI project ID.
             relative_path: File path relative to the workspace root.
-            session_id: Optional owned project session for per-session workspaces.
-                Omitted or empty values retain the legacy default workspace.
+            session_id: Optional owned project session, for per-session workspaces
+                and for a conversation with its own workspace path. Omitted or
+                empty values retain the legacy default workspace.
 
         Returns:
             Relative path, UTF-8 content, and byte size.
@@ -344,8 +363,9 @@ class ChatUIProjectService:
             username: Dashboard username.
             project_id: ChatUI project ID.
             relative_path: File path relative to the workspace root.
-            session_id: Optional owned project session for per-session workspaces.
-                Omitted or empty values retain the legacy default workspace.
+            session_id: Optional owned project session, for per-session workspaces
+                and for a conversation with its own workspace path. Omitted or
+                empty values retain the legacy default workspace.
 
         Returns:
             Validated workspace root and absolute path to the workspace file.
@@ -375,6 +395,23 @@ class ChatUIProjectService:
                 project,
                 fallback_umo=fallback_umo,
             )
+            # Show the conversation's own workspace when it has one. Other
+            # session IDs keep being ignored for shared workspaces.
+            if session_id and not username.startswith(API_KEY_USERNAME_PREFIX):
+                session = await self.db.get_platform_session_by_id(session_id)
+                session_project = await self.db.get_project_by_session(
+                    session_id, username
+                )
+                workspace_path = normalize_workspace_path(
+                    getattr(session, "workspace_path", None)
+                )
+                if (
+                    workspace_path
+                    and session.creator == username
+                    and session_project
+                    and session_project.project_id == project_id
+                ):
+                    resolved_workspace_root = workspace_path_to_root(workspace_path)
         except ValueError as exc:
             raise ChatUIProjectServiceError(str(exc)) from exc
         workspace_root_path = os.path.normcase(
@@ -473,6 +510,7 @@ class ChatUIProjectService:
             "platform_id": session.platform_id,
             "creator": session.creator,
             "display_name": session.display_name,
+            "workspace_path": session.workspace_path,
             "is_group": session.is_group,
             "created_at": to_utc_isoformat(session.created_at),
             "updated_at": to_utc_isoformat(session.updated_at),

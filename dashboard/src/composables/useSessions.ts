@@ -7,6 +7,8 @@ import { buildWebchatUmoDetails, getStoredSelectedChatConfigId } from '@/utils/c
 export interface Session {
     session_id: string;
     display_name: string | null;
+    // The conversation's own workspace path; empty to follow its project.
+    workspace_path?: string | null;
     updated_at: string;
     platform_id: string;
     creator: string;

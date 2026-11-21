@@ -215,6 +215,10 @@ export type ChatSessionBatchDeleteRequest = {
 
 export type ChatSessionPatchRequest = {
     display_name?: string;
+    /**
+     * Dashboard-only workspace path of this conversation; an empty string restores the project or default workspace.
+     */
+    workspace_path?: string;
 };
 
 export type ChatSessionPersonaRequest = {

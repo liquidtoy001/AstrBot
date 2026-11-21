@@ -139,11 +139,25 @@
           @toggle-project="handleProjectToggle"
           @select-project="selectProject"
           @select-session="selectProjectSession"
-          @edit-session-title="editProjectSessionTitle"
+          @edit-session-title="openSessionEditDialog"
           @delete-session="deleteProjectSession"
+          @move-session="moveSessionToProject"
         />
 
-        <section class="sidebar-section session-list">
+        <!-- Dropping a project's conversation here takes it out of the project. -->
+        <section
+          class="sidebar-section session-list"
+          @dragover="
+            $event.dataTransfer?.types.includes(SESSION_DRAG_TYPE) &&
+            $event.preventDefault()
+          "
+          @drop.prevent="
+            moveSessionToProject(
+              $event.dataTransfer?.getData(SESSION_DRAG_TYPE) || '',
+              null,
+            )
+          "
+        >
           <div class="sidebar-section-header">
             <button
               type="button"
@@ -173,6 +187,10 @@
             }"
             role="button"
             tabindex="0"
+            draggable="true"
+            @dragstart="
+              $event.dataTransfer?.setData(SESSION_DRAG_TYPE, session.session_id)
+            "
             @click="selectSession(session.session_id)"
             @keydown.enter="selectSession(session.session_id)"
             @keydown.space.prevent="selectSession(session.session_id)"
@@ -184,8 +202,8 @@
                 size="x-small"
                 variant="text"
                 class="session-action-btn"
-                :title="tm('conversation.editDisplayName')"
-                @click="editSidebarSessionTitle(session)"
+                :title="tm('conversation.edit')"
+                @click="openSessionEditDialog(session.session_id)"
               >
                 <Pencil :size="15" />
               </v-btn>
@@ -308,7 +326,7 @@
         :project="selectedProject"
         :sessions="projectSessions"
         @select-session="selectProjectSession"
-        @edit-session-title="editProjectSessionTitle"
+        @edit-session-title="openSessionEditDialog"
         @delete-session="deleteProjectSession"
       >
         <section class="project-composer-shell">
@@ -592,38 +610,14 @@
       :saving="savingProject"
       @save="saveProject"
     />
-    <v-dialog v-model="sessionTitleDialogOpen" max-width="420">
-      <v-card>
-        <v-card-title class="text-h3 pa-4 pb-0 pl-6">
-          {{ tm("conversation.editDisplayName") }}
-        </v-card-title>
-        <v-card-text>
-          <v-text-field
-            v-model="sessionTitleDraft"
-            :label="tm('conversation.displayName')"
-            variant="outlined"
-            density="comfortable"
-            hide-details
-            autofocus
-            @keydown.enter="saveSessionTitleDialog"
-          />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="sessionTitleDialogOpen = false">
-            {{ t("core.common.cancel") }}
-          </v-btn>
-          <v-btn
-            color="primary"
-            variant="tonal"
-            :loading="savingSessionTitle"
-            @click="saveSessionTitleDialog"
-          >
-            {{ t("core.common.save") }}
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <SessionEditDialog
+      v-model="sessionEditOpen"
+      :session="editingSession"
+      :projects="projects"
+      :saving="savingSession"
+      :error-message="sessionEditError"
+      @save="saveSessionEdit"
+    />
     <ThreadPanel
       v-model="threadPanelOpen"
       :thread="activeThread"
@@ -708,6 +702,9 @@ import ProjectDialog, {
 } from "@/components/chat/ProjectDialog.vue";
 import ProjectList, { type Project } from "@/components/chat/ProjectList.vue";
 import ProjectView from "@/components/chat/ProjectView.vue";
+import SessionEditDialog, {
+  type SessionEditData,
+} from "@/components/chat/SessionEditDialog.vue";
 import ChatInput, {
   type ChatPermissionMode,
 } from "@/components/chat/ChatInput.vue";
@@ -739,7 +736,7 @@ import {
 } from "@/composables/useMessages";
 import { useMediaHandling } from "@/composables/useMediaHandling";
 import { useChatVoice } from "@/composables/useChatVoice";
-import { useProjects } from "@/composables/useProjects";
+import { SESSION_DRAG_TYPE, useProjects } from "@/composables/useProjects";
 import { useDragUpload } from "@/composables/useDragUpload";
 import { useProviderModelSelection } from "@/composables/useProviderModelSelection";
 import {
@@ -811,6 +808,7 @@ const {
   updateProject,
   deleteProject: deleteProjectById,
   addSessionToProject,
+  removeSessionFromProject,
   getProjectSessions,
 } = useProjects();
 
@@ -851,11 +849,11 @@ const projectDialogOpen = ref(false);
 const editingProject = ref<Project | null>(null);
 const projectDialogError = ref("");
 const savingProject = ref(false);
-const sessionTitleDialogOpen = ref(false);
-const sessionTitleDraft = ref("");
-const editingSessionTitleId = ref("");
-const refreshProjectSessionsAfterTitleSave = ref(false);
-const savingSessionTitle = ref(false);
+const sessionEditOpen = ref(false);
+const editingSessionId = ref("");
+const editingSession = ref<SessionEditData | null>(null);
+const sessionEditError = ref("");
+const savingSession = ref(false);
 const messageEditDraft = ref("");
 const editingMessage = ref<ChatRecord | null>(null);
 const savingMessageEdit = ref(false);
@@ -1347,7 +1345,7 @@ watch(
   (requested) => {
     if (!requested) return;
     chatHeader.renameRequested = false;
-    if (currentSession.value) editSidebarSessionTitle(currentSession.value);
+    if (currentSession.value) openSessionEditDialog(currentSession.value.session_id);
   },
 );
 
@@ -1661,58 +1659,120 @@ async function handleDeleteProject(projectId: string) {
   }
 }
 
-function openSessionTitleDialog(
-  sessionId: string,
-  title: string,
-  refreshProjectSessions = false,
-) {
-  editingSessionTitleId.value = sessionId;
-  sessionTitleDraft.value = title;
-  refreshProjectSessionsAfterTitleSave.value = refreshProjectSessions;
-  sessionTitleDialogOpen.value = true;
+function openSessionEditDialog(sessionId: string) {
+  const session = [
+    ...sessions.value,
+    ...Object.values(projectSessionsById.value).flat(),
+    ...Object.values(sessionDetails),
+  ].find((item) => item.session_id === sessionId);
+  editingSessionId.value = sessionId;
+  editingSession.value = {
+    display_name: session?.display_name || "",
+    project_id: sessionProjectId(sessionId),
+    workspace_path: session?.workspace_path || "",
+  };
+  sessionEditError.value = "";
+  sessionEditOpen.value = true;
 }
 
-async function saveSessionTitleDialog() {
-  if (!editingSessionTitleId.value) return;
+async function saveSessionEdit(data: SessionEditData) {
+  const sessionId = editingSessionId.value;
+  const before = editingSession.value;
+  if (!sessionId || !before) return;
 
-  savingSessionTitle.value = true;
+  savingSession.value = true;
+  sessionEditError.value = "";
   try {
-    const sessionId = editingSessionTitleId.value;
-    const displayName = sessionTitleDraft.value.trim();
-    await chatApi.updateSession(sessionId, {
-      display_name: displayName,
+    // The path is validated on save, so only send it when it changed.
+    const response = await chatApi.updateSession(sessionId, {
+      display_name: data.display_name,
+      ...(data.workspace_path !== before.workspace_path
+        ? { workspace_path: data.workspace_path }
+        : {}),
     });
-    updateSessionTitle(sessionId, displayName);
-    if (sessionDetails[sessionId]) {
-      sessionDetails[sessionId].display_name = displayName;
+    if (response.data?.status === "error") {
+      sessionEditError.value =
+        response.data.message || tm("conversation.updateFailed");
+      return;
     }
-    const projectSession = projectSessions.value.find(
-      (session) => session.session_id === sessionId,
-    );
-    if (projectSession) {
-      projectSession.display_name = displayName;
+    for (const session of [
+      ...sessions.value,
+      ...projectSessions.value,
+      ...Object.values(projectSessionsById.value).flat(),
+      ...Object.values(sessionDetails),
+    ]) {
+      if (session.session_id !== sessionId) continue;
+      session.display_name = data.display_name;
+      session.workspace_path = data.workspace_path || null;
     }
-    Object.values(projectSessionsById.value).forEach((projectSessionList) => {
-      const cachedProjectSession = projectSessionList.find(
-        (session) => session.session_id === sessionId,
-      );
-      if (cachedProjectSession) {
-        cachedProjectSession.display_name = displayName;
+    if (data.project_id !== before.project_id) {
+      if (!(await moveSessionToProject(sessionId, data.project_id || null))) {
+        // The other fields are saved; keep the dialog open on the new state.
+        editingSession.value = { ...data, project_id: before.project_id };
+        return;
       }
-    });
-    if (refreshProjectSessionsAfterTitleSave.value) {
-      await loadProjectSessions();
+    } else if (before.project_id) {
+      await loadProjectSessions(before.project_id);
     } else {
       await getSessions();
     }
-    sessionTitleDialogOpen.value = false;
+    sessionEditOpen.value = false;
+  } catch (error) {
+    sessionEditError.value = tm("conversation.updateFailed");
+    console.error("Failed to update session:", error);
   } finally {
-    savingSessionTitle.value = false;
+    savingSession.value = false;
   }
 }
 
-function editSidebarSessionTitle(session: Session) {
-  openSessionTitleDialog(session.session_id, session.display_name || "");
+/** The project a conversation belongs to, or an empty string. */
+function sessionProjectId(sessionId: string) {
+  return (
+    sessionProjects[sessionId]?.project_id ||
+    Object.keys(projectSessionsById.value).find((projectId) =>
+      projectSessionsById.value[projectId].some(
+        (session) => session.session_id === sessionId,
+      ),
+    ) ||
+    ""
+  );
+}
+
+/** Move a conversation into a project, or out of its project with null. */
+async function moveSessionToProject(
+  sessionId: string,
+  projectId: string | null,
+) {
+  const sourceId = sessionProjectId(sessionId);
+  if (!sessionId || (projectId || "") === sourceId) return true;
+
+  const moved = projectId
+    ? await addSessionToProject(sessionId, projectId)
+    : await removeSessionFromProject(sessionId);
+  if (!moved) {
+    toast.error(tm("conversation.moveFailed"));
+    return false;
+  }
+  const project = projects.value.find((item) => item.project_id === projectId);
+  sessionProjects[sessionId] = project
+    ? {
+        project_id: project.project_id,
+        title: project.title,
+        emoji: project.emoji,
+      }
+    : null;
+  await Promise.all([
+    getSessions(),
+    ...[sourceId, projectId]
+      .filter((id): id is string => Boolean(id))
+      .map((id) => loadProjectSessions(id)),
+  ]);
+  toast.success(
+    project
+      ? tm("conversation.movedToProject", { title: project.title })
+      : tm("conversation.movedOutOfProject"),
+  );
+  return true;
 }
 
 async function deleteSidebarSession(session: Session) {
@@ -1731,10 +1791,6 @@ async function deleteSidebarSession(session: Session) {
 async function selectProjectSession(sessionId: string) {
   selectedProjectId.value = null;
   await selectSession(sessionId);
-}
-
-async function editProjectSessionTitle(sessionId: string, title: string) {
-  openSessionTitleDialog(sessionId, title, true);
 }
 
 async function deleteProjectSession(

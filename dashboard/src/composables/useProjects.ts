@@ -4,6 +4,9 @@ import type { Project } from '@/components/chat/ProjectList.vue';
 
 type WorkspaceType = 'session' | 'project' | 'custom';
 
+/** Drag data type carrying the ID of a conversation dragged in the chat sidebar. */
+export const SESSION_DRAG_TYPE = 'application/x-astrbot-session';
+
 function projectErrorMessage(error: unknown, fallback: string) {
     const responseMessage = (error as any)?.response?.data?.message;
     if (typeof responseMessage === 'string' && responseMessage.trim()) {

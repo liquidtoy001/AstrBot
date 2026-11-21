@@ -860,8 +860,16 @@ class BaseDatabase(abc.ABC):
         self,
         session_id: str,
         display_name: str | None = None,
+        workspace_path: str | None = None,
     ) -> None:
-        """Update a Platform session's updated_at timestamp and optionally display_name."""
+        """Update a Platform session's timestamp and the given fields.
+
+        Args:
+            session_id: Platform session ID.
+            display_name: New display name, or None to keep the current one.
+            workspace_path: New workspace path, an empty string to clear it, or
+                None to keep the current one.
+        """
         ...
 
     @abc.abstractmethod

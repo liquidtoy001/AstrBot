@@ -32,10 +32,20 @@
       <div v-if="!projects.length" class="project-list-empty">
         {{ tm("project.noProjects") }}
       </div>
-      <div v-for="project in projects" :key="project.project_id">
+      <!-- A conversation dropped on a project or its list moves into it. -->
+      <div
+        v-for="project in projects"
+        :key="project.project_id"
+        @dragover="handleSessionDragOver($event, project.project_id)"
+        @dragleave="dropProjectId = null"
+        @drop.prevent="handleSessionDrop($event, project.project_id)"
+      >
         <div
           class="project-row project-item"
-          :class="{ active: selectedProjectId === project.project_id }"
+          :class="{
+            active: selectedProjectId === project.project_id,
+            'drop-target': dropProjectId === project.project_id,
+          }"
           role="button"
           tabindex="0"
           @click="handleProjectClick(project)"
@@ -95,6 +105,13 @@
                 :class="{ active: activeSessionId === session.session_id }"
                 role="button"
                 tabindex="0"
+                draggable="true"
+                @dragstart="
+                  $event.dataTransfer?.setData(
+                    SESSION_DRAG_TYPE,
+                    session.session_id,
+                  )
+                "
                 @click="$emit('selectSession', session.session_id)"
                 @keydown.enter="$emit('selectSession', session.session_id)"
                 @keydown.space.prevent="$emit('selectSession', session.session_id)"
@@ -108,7 +125,7 @@
                     size="x-small"
                     variant="text"
                     class="project-action-btn"
-                    :title="tm('conversation.editDisplayName')"
+                    :title="tm('conversation.edit')"
                     @click="
                       $emit(
                         'editSessionTitle',
@@ -161,6 +178,7 @@ import {
 } from "@lucide/vue";
 import { useModuleI18n } from "@/i18n/composables";
 import { askForConfirmation, useConfirmDialog } from "@/utils/confirmDialog";
+import { SESSION_DRAG_TYPE } from "@/composables/useProjects";
 
 export interface Project {
   project_id: string;
@@ -177,6 +195,7 @@ export interface Project {
 export interface ProjectSession {
   session_id: string;
   display_name?: string | null;
+  workspace_path?: string | null;
   updated_at: string;
 }
 
@@ -203,6 +222,7 @@ const emit = defineEmits<{
   selectSession: [sessionId: string];
   editSessionTitle: [sessionId: string, title: string];
   deleteSession: [sessionId: string, projectId: string];
+  moveSession: [sessionId: string, projectId: string];
 }>();
 
 const { tm } = useModuleI18n("features/chat");
@@ -267,6 +287,21 @@ function setProjectExpanded(projectId: string, expanded: boolean) {
   expandedProjectIds.value = next;
   persistExpandedProjectIds();
   emit("toggleProject", projectId, expanded);
+}
+
+// The project a dragged conversation is currently over.
+const dropProjectId = ref<string | null>(null);
+
+function handleSessionDragOver(event: DragEvent, projectId: string) {
+  if (!event.dataTransfer?.types.includes(SESSION_DRAG_TYPE)) return;
+  event.preventDefault();
+  dropProjectId.value = projectId;
+}
+
+function handleSessionDrop(event: DragEvent, projectId: string) {
+  dropProjectId.value = null;
+  const sessionId = event.dataTransfer?.getData(SESSION_DRAG_TYPE);
+  if (sessionId) emit("moveSession", sessionId, projectId);
 }
 
 function handleProjectClick(project: Project) {
@@ -401,6 +436,12 @@ async function handleDeleteSession(projectId: string, session: ProjectSession) {
 .project-row.active,
 .project-session-row.active {
   background: rgba(var(--v-theme-primary), 0.22);
+}
+
+.project-row.drop-target {
+  background: var(--chat-session-active-bg);
+  outline: 1px dashed rgba(var(--v-theme-primary), 0.7);
+  outline-offset: -1px;
 }
 
 .project-emoji {
