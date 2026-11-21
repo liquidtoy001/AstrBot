@@ -12,6 +12,10 @@ export const useChatHeaderStore = defineStore("chatHeader", {
     // dialogs through this request; the header shows them and clears it.
     updateAvailable: false,
     headerDialog: "" as "" | "update" | "account",
+    // Double-clicking the header title asks the chat page to rename the
+    // current conversation with its usual dialog.
+    titleRenamable: false,
+    renameRequested: false,
   }),
 
   actions: {
@@ -19,6 +23,7 @@ export const useChatHeaderStore = defineStore("chatHeader", {
       title?: string;
       subtitle?: string;
       projectId?: string;
+      titleRenamable?: boolean;
     }) {
       const nextProjectId = payload.projectId || "";
       if (this.projectId !== nextProjectId) {
@@ -27,6 +32,7 @@ export const useChatHeaderStore = defineStore("chatHeader", {
       this.title = payload.title || "";
       this.subtitle = payload.subtitle || "";
       this.projectId = nextProjectId;
+      this.titleRenamable = Boolean(payload.titleRenamable);
     },
     TOGGLE_WORKSPACE_FILES() {
       if (this.projectId) {
@@ -42,7 +48,11 @@ export const useChatHeaderStore = defineStore("chatHeader", {
     OPEN_HEADER_DIALOG(dialog: "update" | "account") {
       this.headerDialog = dialog;
     },
+    REQUEST_RENAME() {
+      if (this.titleRenamable) this.renameRequested = true;
+    },
     CLEAR_CONTEXT() {
+      this.titleRenamable = false;
       this.title = "";
       this.subtitle = "";
       this.projectId = "";

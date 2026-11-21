@@ -1307,15 +1307,25 @@ provide(
 );
 
 watch(
-  [chatHeaderTitle, chatHeaderSubtitle, activeProject],
-  ([title, subtitle, project]) => {
+  [chatHeaderTitle, chatHeaderSubtitle, activeProject, currentSession],
+  ([title, subtitle, project, session]) => {
     chatHeader.SET_CONTEXT({
       title,
       subtitle,
       projectId: project?.project_id,
+      titleRenamable: Boolean(session),
     });
   },
   { immediate: true },
+);
+
+watch(
+  () => chatHeader.renameRequested,
+  (requested) => {
+    if (!requested) return;
+    chatHeader.renameRequested = false;
+    if (currentSession.value) editSidebarSessionTitle(currentSession.value);
+  },
 );
 
 watch(

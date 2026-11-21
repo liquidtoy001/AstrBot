@@ -10,6 +10,7 @@ import { useChatHeaderStore } from "@/stores/chatHeader";
 const route = useRoute();
 const router = useRouter();
 const { tm } = useModuleI18n("features/provider");
+const { tm: tmChat } = useModuleI18n("features/chat");
 const isProviderWorkspace = computed(() => route.params.conversationId === "models");
 const providerTypes = computed(() => [
   { value: "chat_completion", label: tm("providers.tabs.chatCompletion") },
@@ -48,9 +49,18 @@ const title = computed(() => {
       </v-list-item>
     </StyledMenu>
     <ProviderModelMenu v-else variant="header" />
-    <span v-if="title" class="chat-toolbar-context-title" :title="title">{{
-      title
-    }}</span>
+    <span
+      v-if="title"
+      class="chat-toolbar-context-title"
+      :title="
+        chatHeader.titleRenamable
+          ? `${title}
+${tmChat('conversation.renameByDoubleClick')}`
+          : title
+      "
+      @dblclick="chatHeader.REQUEST_RENAME()"
+      >{{ title }}</span
+    >
   </div>
 </template>
 
@@ -96,6 +106,8 @@ const title = computed(() => {
 
 .chat-toolbar-context-title {
   max-width: 32vw;
+  /* Double-click renames; do not select a word first. */
+  user-select: none;
   color: rgba(var(--v-theme-on-surface), 0.62);
   font-size: 0.6875rem;
   font-weight: 500;
