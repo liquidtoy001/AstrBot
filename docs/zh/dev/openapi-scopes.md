@@ -166,6 +166,7 @@ outline: deep
 | `GET` | `/api/v1/chat/sessions/{session_id}` | — |
 | `PATCH` | `/api/v1/chat/sessions/{session_id}` | — |
 | `DELETE` | `/api/v1/chat/sessions/{session_id}` | — |
+| `POST` | `/api/v1/chat/sessions/{session_id}/compact` | — |
 | `PATCH` | `/api/v1/chat/sessions/{session_id}/messages/{message_id}` | — |
 | `POST` | `/api/v1/chat/sessions/{session_id}/messages/{message_id}/regenerate` | — |
 | `PUT` | `/api/v1/chat/sessions/{session_id}/permission-mode` | — |

@@ -50,6 +50,13 @@ AstrBot checks again after processing. If the context is still too long, it remo
 
 If the latest turn alone is too large, automatic compression may still be unable to fit the request into the model's window. Reduce the size of the input or tool output, or choose a model with a larger context window.
 
+### Per-Conversation Threshold and Compact Now in ChatUI
+
+In ChatUI, under **Session panel → Context**:
+
+- **Auto-compact threshold** makes the current conversation compress earlier than about 82%: Auto, or 50%, 40%, or 30% of the window. The threshold never goes below the larger of 8192 tokens and 20% of the window, so a system prompt and tool definitions that alone exceed it do not trigger compression on every turn, and never later than the model window. It affects only this ChatUI conversation, is saved per conversation in the browser, does not change the config profile, and does not apply to sub-agents.
+- **Compact conversation** immediately summarizes the earlier context with an LLM, keeps the latest round verbatim, and resets the recorded token usage, which reappears after the next reply. It always writes a summary, whatever strategy is selected above, using the configured compression model or, if none is set, the conversation's model; it costs one model call. It is refused while a reply runs (including turns started by scheduled tasks or sub-agent results) or with fewer than two rounds of history, and nothing is written if the summary does not make the context smaller or the conversation changed meanwhile. The chat display is unchanged.
+
 ### 2. A Configured Turn Limit Is Reached
 
 **Max Turns Before Compression** adds a history length limit. Its default, `-1`, means no turn-based limit. With a positive value, AstrBot also truncates earlier material to enforce this limit before checking token usage. **Turns to Discard When Limit Exceeded** controls how many turns are removed at once and defaults to `1`.
