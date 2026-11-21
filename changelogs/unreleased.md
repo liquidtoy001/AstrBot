@@ -55,6 +55,8 @@
 - Desktop ChatUI drops the **Options** menu in the upper-right corner: language and theme were already under **Settings → General** (bottom left), and **Check for updates**, **Change account** and **Log out** move there too; the **Settings** button shows a dot when an update is available. Other pages and phones keep the header menu.
 - 双击 ChatUI 顶栏中间的会话标题，可以用原来的「编辑会话名称」对话框重命名当前对话。
 - Double-click the conversation title in the middle of the ChatUI header to rename the current conversation with the usual **Edit Session Name** dialog.
+- 桌面端 ChatUI 的会话面板和工作台改为在顶栏下方右侧弹出的卡片，顶栏图标不再随面板开关变化：工作台的标签栏和按钮移进卡片，原来的收起按钮改为 X；面板打开时对应的顶栏按钮保持高亮，再点一次关闭（原来会话按钮的高亮不显示）。工作台展开时只占满聊天区域，左侧栏、顶栏和窗口按钮仍可使用。手机端不变。
+- Desktop ChatUI opens the Session panel and the workbench as cards on the right below the top bar, and the top bar icons no longer change when a panel opens: the workbench tabs and buttons move into its card, and its hide button becomes an X. The button of an open panel stays highlighted and closes it when selected again (the Session button's highlight did not show before). An expanded workbench fills only the chat area, so the left sidebar, the top bar and the window buttons stay usable. Phones are unchanged.
 
 ### Tool approval and permission modes / 工具审批与权限档位
 

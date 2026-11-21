@@ -112,7 +112,7 @@
               :title="tm('workbench.hide')"
               @click="emit('close')"
             >
-              <PanelRightClose :size="18" />
+              <X :size="18" />
             </button>
           </div>
         </header>
@@ -158,7 +158,6 @@ import {
   File,
   Maximize2,
   Minimize2,
-  PanelRightClose,
   Plus,
   X,
 } from "@lucide/vue";
@@ -289,12 +288,17 @@ async function navigateTabs(event: KeyboardEvent, id: string) {
   background: var(--chat-page-bg, rgb(var(--v-theme-background)));
   color: rgb(var(--v-theme-on-surface));
 }
-.chat-workbench.expanded {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100dvh;
-  z-index: 2400;
+/* Expanded covers the chat area only, so the sidebar, the top bar and the
+   window buttons stay usable. The top and right edges stay where the card
+   was, which keeps the expand and restore button in place. */
+@media (min-width: 960px) {
+  .chat-workbench.expanded {
+    position: absolute;
+    inset: 0 0 0 var(--chat-panel-gap, 8px);
+    width: auto;
+    height: auto;
+    z-index: 10;
+  }
 }
 .workbench-header {
   display: flex;

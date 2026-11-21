@@ -360,13 +360,22 @@
         :class="{ 'is-empty': isEmptyChat }"
       >
         <Teleport to="#chat-workbench-header">
+          <!-- Stays in the top bar while the workbench is open, like the
+               session panel button: highlighted while open, click again to close. -->
           <button
-            v-if="!workbenchVisible"
             type="button"
             class="workbench-launcher"
+            :class="{ 'workbench-launcher--active': workbenchVisible }"
             :title="tm('workbench.title')"
             :aria-label="tm('workbench.title')"
-            @click="workbench?.tabs.length ? (workbench.open = true) : openWorkbenchPage()"
+            :aria-pressed="workbenchVisible"
+            @click="
+              workbenchVisible && workbench
+                ? (workbench.open = false)
+                : workbench?.tabs.length
+                  ? (workbench.open = true)
+                  : openWorkbenchPage()
+            "
           >
             <Globe :size="18" />
           </button>
@@ -624,7 +633,6 @@
       v-if="workbench?.tabs.length"
       :open="workbenchVisible"
       :session-id="currSessionId"
-      header-target="#chat-workbench-header"
       :tabs="workbench.tabs"
       :active-id="workbench.activeId"
       :is-dark="isDark"
@@ -2421,6 +2429,8 @@ async function stopCurrentSession() {
   --chat-section-label: rgba(var(--v-theme-on-surface), 0.48);
   --chat-content-width: 76%;
   --chat-content-max-width: 760px;
+  /* Containing block for the expanded workbench. */
+  position: relative;
   display: flex;
   height: 100%;
   min-height: 0;
@@ -3022,14 +3032,16 @@ async function stopCurrentSession() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--astrbot-radius-control);
+  /* Same size and shape as the session panel button next to it. */
+  width: 34px;
+  height: 34px;
+  border-radius: 4px;
   color: rgb(var(--v-theme-on-surface));
   cursor: pointer;
   -webkit-app-region: no-drag;
 }
-.workbench-launcher:hover {
+.workbench-launcher:hover,
+.workbench-launcher--active {
   background: rgba(var(--v-theme-on-surface), 0.08);
 }
 

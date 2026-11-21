@@ -25,6 +25,25 @@
   }
 }
 
+/* On desktop a right panel is a card that opens below the top bar, inset from
+   the chat area's edges, so the top bar keeps the same icons whether a panel
+   is open or not. The selectors outrank each panel's own scoped width and
+   height rules. */
+@media (min-width: 960px) {
+  .chat-ui > aside.chat-side-panel {
+    height: auto;
+    margin: 0 var(--chat-panel-gap) var(--chat-panel-gap) 0;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .chat-ui > aside.chat-side-panel.chat-panel-enter-from,
+  .chat-ui > aside.chat-side-panel.chat-panel-leave-to {
+    margin-inline-end: calc(-1 * var(--chat-side-panel-width) - var(--chat-panel-gap));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chat-side-panel.chat-panel-enter-active,
   .chat-side-panel.chat-panel-leave-active {
@@ -34,6 +53,7 @@
 
 .chat-ui,
 .top-header {
+  --chat-panel-gap: 8px;
   --astrbot-workbench-width: min(
     var(--astrbot-workbench-preferred-width, clamp(360px, 44vw, 780px)),
     max(320px, calc(100vw - var(--astrbot-chat-sidebar-width, 0px) - 326px))
