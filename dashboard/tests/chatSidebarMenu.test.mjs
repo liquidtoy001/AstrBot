@@ -160,6 +160,8 @@ function chatContext(overrides = {}) {
     ],
     {
       calls,
+      // "s3" is pinned inside a project whose list was never opened.
+      sessions: { value: [{ session_id: "s3", pinned: true, project_id: "p9" }] },
       projectSessionsById: { value: { p1: [{ session_id: "s2", pinned: true }] } },
       sessionProjects: {},
       menuSession: { value: null },
@@ -188,12 +190,22 @@ test("pinning a conversation saves the new state and reloads the list it is in",
     ["getSessions"],
   ]);
 
-  // A pinned conversation inside a project is unpinned; only the project reloads.
+  // A conversation inside a project is listed in the pinned group and in its
+  // project, so both lists reload.
   chat.calls.length = 0;
   await chat.toggleSessionPin({ session_id: "s2", pinned: true });
   assert.deepEqual(plain(chat.calls), [
     ["update", "s2", { pinned: false }],
+    ["getSessions"],
     ["loadProjectSessions", "p1"],
+  ]);
+
+  // The project is known from the sidebar list even before it was opened.
+  chat.calls.length = 0;
+  await chat.toggleSessionPin({ session_id: "s3", pinned: true });
+  assert.deepEqual(plain(chat.calls.slice(1)), [
+    ["getSessions"],
+    ["loadProjectSessions", "p9"],
   ]);
 
   const failing = chatContext({

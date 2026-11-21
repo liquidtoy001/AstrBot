@@ -85,6 +85,31 @@ async def test_pinned_conversation_leads_its_project(db):
 
 
 @pytest.mark.asyncio
+async def test_pinned_project_conversation_is_also_listed_in_the_sidebar(db):
+    projects = ChatUIProjectService(db)
+    project = await projects.create_project("alice", {"title": "Docs"})
+    await db.add_session_to_project("old", project["project_id"])
+    await db.add_session_to_project("mid", project["project_id"])
+    # Conversations inside a project stay out of the sidebar list.
+    assert await listed(db, exclude_project_sessions=True) == ["new"]
+
+    # Pinning one brings it back, first and with its project, so the sidebar
+    # can show every pinned conversation in one group.
+    await db.update_platform_session("old", pinned=True)
+    assert await listed(db, exclude_project_sessions=True) == ["old", "new"]
+    service = object.__new__(ChatService)
+    service.db = db
+    sessions = await service.get_sessions("alice", None)
+    assert [
+        (session["session_id"], session["project_id"], session["project_title"])
+        for session in sessions
+    ] == [("old", project["project_id"], "Docs"), ("new", None, None)]
+
+    await db.update_platform_session("old", pinned=False)
+    assert await listed(db, exclude_project_sessions=True) == ["new"]
+
+
+@pytest.mark.asyncio
 async def test_pinned_project_is_listed_first_without_counting_as_activity(db):
     projects = ChatUIProjectService(db)
     first = await projects.create_project("alice", {"title": "First"})
