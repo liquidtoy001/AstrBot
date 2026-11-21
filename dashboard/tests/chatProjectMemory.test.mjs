@@ -17,7 +17,6 @@ function mountDialog(props) {
       "@/utils/desktopRuntime": {
         getDesktopRuntimeInfo: async () => ({ isDesktopRuntime: false }),
       },
-      "@/components/shared/EmojiPicker.vue": {},
     },
   ).default;
   const mounted = mountSetup({
@@ -65,7 +64,6 @@ test("the project dialog loads and saves the shared memory switch", async () => 
     dialog.state.form.shared_memory = true;
     dialog.state.handleSave();
     assert.deepEqual(plain(dialog.emitted.at(-1)[1]), {
-      emoji: "📁",
       title: "New",
       description: "",
       workspace_type: "project",
