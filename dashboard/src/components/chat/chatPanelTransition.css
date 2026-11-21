@@ -25,23 +25,37 @@
   }
 }
 
-/* On desktop a right panel is a card that opens below the top bar, inset from
-   the chat area's edges, so the top bar keeps the same icons whether a panel
-   is open or not. The selectors outrank each panel's own scoped width and
-   height rules. */
+/* On desktop a right panel opens below the top bar as a sheet docked into the
+   chat area's right edge, with a rounded top-left corner, so the top bar keeps
+   the same icons whether a panel is open or not. The doubled class outranks
+   each panel's own scoped height and border rules, whatever its root tag. */
 @media (min-width: 960px) {
-  .chat-ui > aside.chat-side-panel {
+  .chat-ui > .chat-side-panel.chat-side-panel {
     height: auto;
-    margin: 0 var(--chat-panel-gap) var(--chat-panel-gap) 0;
-    border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-    border-radius: 12px;
+    border: 0;
+    border-top: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+    border-left: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+    border-top-left-radius: 12px;
     overflow: hidden;
   }
+}
 
-  .chat-ui > aside.chat-side-panel.chat-panel-enter-from,
-  .chat-ui > aside.chat-side-panel.chat-panel-leave-to {
-    margin-inline-end: calc(-1 * var(--chat-side-panel-width) - var(--chat-panel-gap));
-  }
+/* Switching between right panels: while two or more panels are present,
+   take every leaving one out of the layout and hide it, so they never share
+   the space and only the panel that stays is seen. A single panel closing on
+   its own still slides out. The transition keeps running unseen, so Vue
+   finishes the leave as usual; forcing display: none here would cut it short
+   and can leave the v-show workbench visible after fast toggling. The
+   workbench stays in the DOM with an inline display: none while hidden, so
+   it only counts while shown. */
+.chat-ui:has(
+    > .chat-side-panel:not([style*="display: none"])
+      ~ .chat-side-panel:not([style*="display: none"])
+  )
+  > .chat-side-panel.chat-panel-leave-active {
+  position: absolute !important;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -53,7 +67,6 @@
 
 .chat-ui,
 .top-header {
-  --chat-panel-gap: 8px;
   --astrbot-workbench-width: min(
     var(--astrbot-workbench-preferred-width, clamp(360px, 44vw, 780px)),
     max(320px, calc(100vw - var(--astrbot-chat-sidebar-width, 0px) - 326px))

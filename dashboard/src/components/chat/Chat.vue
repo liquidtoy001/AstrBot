@@ -361,11 +361,15 @@
       >
         <Teleport to="#chat-workbench-header">
           <!-- Stays in the top bar while the workbench is open, like the
-               session panel button: highlighted while open, click again to close. -->
-          <button
-            type="button"
-            class="workbench-launcher"
-            :class="{ 'workbench-launcher--active': workbenchVisible }"
+               session panel button, and uses the same button and icon set:
+               highlighted while open, click again to close. -->
+          <v-btn
+            class="chat-action-btn workspace-files-trigger workbench-launcher"
+            :class="{ 'workspace-files-trigger--active': workbenchVisible }"
+            variant="text"
+            size="small"
+            rounded="sm"
+            icon
             :title="tm('workbench.title')"
             :aria-label="tm('workbench.title')"
             :aria-pressed="workbenchVisible"
@@ -377,8 +381,8 @@
                   : openWorkbenchPage()
             "
           >
-            <Globe :size="18" />
-          </button>
+            <v-icon size="20">mdi-web</v-icon>
+          </v-btn>
         </Teleport>
         <v-progress-linear
           v-if="activeSessionPagination?.loading"
@@ -691,7 +695,6 @@ import {
   ChevronRight,
   Box,
   PanelLeft,
-  Globe,
   Pencil,
   Settings,
   SquarePen,
@@ -984,6 +987,18 @@ watch(sessionPanelOpen, (open) => {
   threadPanelOpen.value = false;
   refsSidebarOpen.value = false;
 });
+// The header's project files button only flips its own flag, so close the
+// other right panels here; otherwise files and session stay open together.
+watch(
+  () => chatHeader.workspaceFilesOpen,
+  (open) => {
+    if (!open) return;
+    sessionPanelOpen.value = false;
+    threadPanelOpen.value = false;
+    activeThread.value = null;
+    refsSidebarOpen.value = false;
+  },
+);
 
 const {
   loadingMessages,
@@ -3028,21 +3043,11 @@ async function stopCurrentSession() {
   justify-content: center;
   gap: 28px;
 }
+/* The header's button rules (`.top-header .header-actions .v-btn` and
+   `.workspace-files-trigger--active`) style this teleported button like the
+   session panel button; only keep it clickable inside the drag region. */
 .workbench-launcher {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  /* Same size and shape as the session panel button next to it. */
-  width: 34px;
-  height: 34px;
-  border-radius: 4px;
-  color: rgb(var(--v-theme-on-surface));
-  cursor: pointer;
   -webkit-app-region: no-drag;
-}
-.workbench-launcher:hover,
-.workbench-launcher--active {
-  background: rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .messages-panel {

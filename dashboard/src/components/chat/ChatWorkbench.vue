@@ -307,12 +307,12 @@ async function navigateTabs(event: KeyboardEvent, id: string) {
   color: rgb(var(--v-theme-on-surface));
 }
 /* Expanded covers the chat area only, so the sidebar, the top bar and the
-   window buttons stay usable. The top and right edges stay where the card
+   window buttons stay usable. The top and right edges stay where the panel
    was, which keeps the expand and restore button in place. */
 @media (min-width: 960px) {
   .chat-workbench.expanded {
     position: absolute;
-    inset: 0 0 0 var(--chat-panel-gap, 8px);
+    inset: 0;
     width: auto;
     height: auto;
     z-index: 10;

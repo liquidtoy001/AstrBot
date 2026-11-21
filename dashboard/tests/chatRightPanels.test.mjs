@@ -30,7 +30,24 @@ test("the workbench button stays in the top bar and toggles the workbench", () =
       node.tag === "Teleport" &&
       node.props.some((prop) => prop.value?.content === "#chat-workbench-header"),
   );
-  const [button] = findElements(teleport, (node) => node.tag === "button");
+  const [button] = findElements(teleport, (node) => node.tag === "v-btn");
+  // Same button and icon set as the session panel button.
+  assert.deepEqual(
+    findElements(button, (node) => node.tag === "v-icon").map(
+      (node) => node.children[0]?.content?.trim(),
+    ),
+    ["mdi-web"],
+  );
+  assert.equal(attr(button, "rounded").value.content, "sm");
+  // Same classes, so the header's button and highlight rules apply to it.
+  assert.match(
+    button.props.find((prop) => prop.name === "class").value.content,
+    /chat-action-btn workspace-files-trigger/,
+  );
+  assert.match(
+    button.props.find((prop) => prop.name === "bind" && prop.arg?.content === "class").exp.content,
+    /'workspace-files-trigger--active': workbenchVisible/,
+  );
   // No v-if: the button keeps its place while the workbench is open.
   assert.equal(attr(button, "if"), undefined);
   assert.equal(attr(button, "aria-pressed").exp.content, "workbenchVisible");
@@ -78,7 +95,7 @@ test("the workbench keeps its tabs and buttons inside its card", () => {
   assert.ok(!icons.includes("PanelRightClose"));
 });
 
-test("expanded covers the chat area only and panels open as cards", () => {
+test("expanded covers the chat area only and panels dock below the top bar", () => {
   const css = workbench.styles.map((style) => style.content).join("\n");
   const expanded = css.match(
     /@media \(min-width: 960px\) \{[^@]*?\.chat-workbench\.expanded \{([^}]*)\}/,
@@ -92,10 +109,21 @@ test("expanded covers the chat area only and panels open as cards", () => {
   );
 
   const panels = read("../src/components/chat/chatPanelTransition.css");
-  const card = panels.match(/\.chat-ui > aside\.chat-side-panel \{([^}]*)\}/);
-  assert.ok(card, "shared card rule for right panels");
-  assert.match(card[1], /border-radius/);
-  assert.match(card[1], /margin: 0 var\(--chat-panel-gap\)/);
+  const card = panels.match(/\.chat-ui > \.chat-side-panel\.chat-side-panel \{([^}]*)\}/);
+  assert.ok(card, "shared rule for right panels");
+  assert.match(card[1], /border-top-left-radius: 12px/);
+  assert.match(card[1], /border-left: 1px solid/);
+  // Docked into the right and bottom edges: no margin that would also
+  // outrank the slide-in margin of the enter transition.
+  assert.doesNotMatch(card[1], /margin/);
+  // While two or more panels are present, leaving ones are taken out of the
+  // layout and hidden, without display: none (which cuts Vue's leave short).
+  const rule = panels.match(/\.chat-ui:has\(([^{]*)\)\s*> \.chat-side-panel\.chat-panel-leave-active \{([^}]*)\}/);
+  assert.ok(rule, "rule for panels leaving during a switch");
+  assert.match(rule[1], /:not\(\[style\*="display: none"\]\)\s*~ \.chat-side-panel:not\(\[style\*="display: none"\]\)/);
+  assert.match(rule[2], /position: absolute !important/);
+  assert.match(rule[2], /visibility: hidden/);
+  assert.doesNotMatch(rule[2], /display/);
 });
 
 test("an open panel's top bar button keeps its highlight", () => {
@@ -171,4 +199,54 @@ test("the + button shows only when there is a view to add or the list failed", (
   assert.equal(shown({ catalogViews: [], catalogFailed: false }), false);
   assert.equal(shown({ catalogViews: [{}], catalogFailed: false }), true);
   assert.equal(shown({ catalogViews: [], catalogFailed: true }), true, "keeps retry reachable");
+});
+
+test("opening project files closes the other right panels", () => {
+  const source = chat.scriptSetup.content;
+  const match = source.match(
+    /watch\(\s*\(\) => chatHeader\.workspaceFilesOpen,\s*(\(open\) => \{[\s\S]*?\n {2}\}),\s*\);/,
+  );
+  assert.ok(match, "a watcher on the project files flag");
+  const scope = {
+    sessionPanelOpen: { value: true },
+    threadPanelOpen: { value: true },
+    activeThread: { value: {} },
+    refsSidebarOpen: { value: true },
+  };
+  const callback = new Function(
+    "scope",
+    `with (scope) { return ${match[1]} }`,
+  )(scope);
+  callback(true);
+  assert.equal(scope.sessionPanelOpen.value, false);
+  assert.equal(scope.threadPanelOpen.value, false);
+  assert.equal(scope.activeThread.value, null);
+  assert.equal(scope.refsSidebarOpen.value, false);
+});
+
+test("the top bar reads mode, project files, session, then workbench", () => {
+  const header = parse(
+    read("../src/layouts/full/vertical-header/VerticalHeader.vue"),
+  ).descriptor;
+  const [actions] = findElements(
+    header.template.ast,
+    (node) => node.props?.some((prop) => prop.value?.content === "header-actions"),
+  );
+  const buttons = actions.children
+    .filter((node) => node.tag === "v-btn")
+    .map((node) => attr(node, "title")?.exp?.content || attr(node, "class").value.content);
+  assert.deepEqual(buttons.slice(0, 3), [
+    "mode-switch-btn",
+    "tm('workspaceFiles.open')",
+    "tm('sessionPanel.toggle')",
+  ]);
+  // The workbench button is teleported into the mount point after them.
+  const ids = actions.children.map(
+    (node) => node.props?.find((prop) => prop.name === "id")?.value?.content,
+  );
+  const sessionIndex = actions.children.findIndex(
+    (node) =>
+      node.props && attr(node, "title")?.exp?.content === "tm('sessionPanel.toggle')",
+  );
+  assert.ok(ids.indexOf("chat-workbench-header") > sessionIndex);
 });

@@ -1151,6 +1151,24 @@ onMounted(async () => {
     </button>
 
     <div class="header-actions" :class="{ 'chat-header-actions': isChatPath }">
+      <!-- Bot/Chat mode switch - single button, hidden in chat mobile menu.
+           First, so ChatUI reads: mode, project files, session, workbench. -->
+      <v-btn
+        v-if="!customizer.chatNavigationInSidebar && (!isChatPath || !$vuetify.display.smAndDown)"
+        class="mode-switch-btn"
+        :class="{ 'mr-4 hidden-xs': !isChatPath }"
+        variant="text"
+        size="small"
+        rounded="sm"
+        :ripple="false"
+        @click="switchMode"
+      >
+        <v-icon start>{{ nextMode === "bot" ? "mdi-robot" : "mdi-chat" }}</v-icon>
+        <span class="mode-switch-label">{{
+          nextMode === "bot" ? t("core.navigation.botMode") : t("core.navigation.chat")
+        }}</span>
+      </v-btn>
+
       <v-btn
         v-if="isChatPath && chatHeader.projectId"
         class="chat-action-btn workspace-files-trigger"
@@ -1188,23 +1206,6 @@ onMounted(async () => {
         @click="chatHeader.SET_SESSION_PANEL_OPEN(!chatHeader.sessionPanelOpen)"
       >
         <v-icon size="20">mdi-format-list-bulleted</v-icon>
-      </v-btn>
-
-      <!-- Bot/Chat mode switch - single button, hidden in chat mobile menu -->
-      <v-btn
-        v-if="!customizer.chatNavigationInSidebar && (!isChatPath || !$vuetify.display.smAndDown)"
-        class="mode-switch-btn"
-        :class="{ 'mr-4 hidden-xs': !isChatPath }"
-        variant="text"
-        size="small"
-        rounded="sm"
-        :ripple="false"
-        @click="switchMode"
-      >
-        <v-icon start>{{ nextMode === "bot" ? "mdi-robot" : "mdi-chat" }}</v-icon>
-        <span class="mode-switch-label">{{
-          nextMode === "bot" ? t("core.navigation.botMode") : t("core.navigation.chat")
-        }}</span>
       </v-btn>
 
       <!-- 功能菜单 -->
@@ -2783,7 +2784,9 @@ html[data-astrbot-desktop-platform='macos'] .top-header.chat-mode-header.chat-mo
 #chat-workbench-header:has(.workbench-launcher) {
   display: flex;
   align-items: center;
-  padding: 0 8px;
+  /* No left padding: the header actions' own gap spaces the button like the
+     session panel button before it. */
+  padding: 0 8px 0 0;
   height: var(--astrbot-toolbar-height);
 }
 #chat-workbench-header:has(.workbench-header) {
