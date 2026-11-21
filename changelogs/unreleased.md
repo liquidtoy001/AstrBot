@@ -108,3 +108,12 @@
 - ChatUI **Settings → Subagents**: edit the sub-agent settings of the conversation's config profile; **Create ChatUI profile** gives ChatUI its own profile.
 - 新增接口 `GET /api/v1/chat/sessions/{session_id}/subagents`、`POST .../subagents/{agent_id}/cancel`、`POST .../compact`、`GET .../settings`、`PUT .../persona`，只允许会话本人访问。每轮的 `agent_stats` 新增 `context_breakdown` 和 `compactions`。
 - Add `GET /api/v1/chat/sessions/{session_id}/subagents`, `POST .../subagents/{agent_id}/cancel`, `POST .../compact`, `GET .../settings`, and `PUT .../persona`, limited to the session's owner. Each turn's `agent_stats` gains `context_breakdown` and `compactions`.
+
+### ChatUI conversation workspace and projects / ChatUI 对话工作区与项目
+
+- 编辑会话名称 → 编辑对话：侧边栏对话的铅笔按钮现在打开「编辑对话」，除名称外还可以选择所属项目、填写该对话自己的工作区路径（本地绝对路径，或 `data/workspaces` 下的子目录；留空则沿用项目工作区或默认目录）。对话自己的路径优先于项目的工作区设置，保存在服务器上；API 密钥创建的对话不能设置。
+- Edit Session Name → Edit conversation: the pencil button on a sidebar conversation now opens **Edit conversation**, which also selects the conversation's project and sets its own workspace path (an absolute local path, or a subfolder of `data/workspaces`; empty keeps the project's or the default workspace). The conversation's path takes priority over the project's workspace setting and is stored on the server. Conversations created with an API key cannot set it.
+- 对话可以拖到侧边栏的项目上移入该项目，项目内的对话可以拖到另一个项目，或拖回「对话」列表移出项目。
+- Drag a conversation onto a project in the sidebar to move it there; a conversation inside a project can be dragged to another project, or back to the **Conversations** list to leave its project.
+- `PATCH /api/v1/chat/sessions/{session_id}` 新增 `workspace_path`（空字符串表示清除）；会话列表、会话详情和项目会话列表返回 `workspace_path`。`platform_sessions` 表新增 `workspace_path` 列，启动时自动添加。工作区文件面板在对话有自己的路径时显示该目录。
+- `PATCH /api/v1/chat/sessions/{session_id}` accepts `workspace_path` (an empty string clears it); session lists, session details and project session lists return `workspace_path`. The `platform_sessions` table gains a `workspace_path` column, added automatically on startup. The workspace files panel shows the conversation's own folder when it has one.

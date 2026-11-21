@@ -94,6 +94,7 @@ ChatUI supports these common workflows:
   If the list does not fill the sidebar, more pages load automatically. Opening an older conversation by URL keeps its title and selected sidebar entry visible before its page loads.
 - Create, rename, and delete conversations, and switch previous conversations from the sidebar. Double-click the conversation title in the middle of the header to rename the current conversation.
 - **Settings → General** at the bottom left switches theme and language, checks for updates, changes the account and logs out; the **Settings** button shows a dot when an update is available. Desktop ChatUI no longer shows the **Options** menu in the header.
+- Move a conversation into or out of a project and give a single conversation its own workspace; see [Conversation project and workspace](#conversation-project-and-workspace) below.
 - Select the config profile, model provider, and model on the chat page; if Provider session separation is enabled, you can also choose a model for the current session only. The model button shows only the model name (hover to see the full provider ID), followed by the thinking level and a "Fast" chip.
 - Choose a thinking level (low / medium / high) for the current conversation at the top of the model selector; see [Thinking level](#thinking-level) below. Supported models also offer [Fast mode](#fast-mode).
 - Choose a permission mode for the current conversation (Workspace / Ask for approval / Full access) next to **+** in the input box. Tools that need approval show an approval card above the input box, and the outcome stays in the reply. See [Tool approval and permission modes](./tool-approval.md).
@@ -115,6 +116,18 @@ ChatUI supports these common workflows:
 - In ChatUI **Settings → Subagents**, edit the **Subagents** group of the config profile used by the conversation, the same group as on the config page, and select **Save**. These are profile settings: bot platforms using the same profile are affected too. **Create ChatUI profile** copies the current config into a "ChatUI" profile and routes all ChatUI conversations to it (route `webchat::`, except conversations with an explicitly chosen profile), so later changes no longer affect bots. Persona, context management, and computer use settings are on the config page (**Open full config page**); the conversation's persona can also be switched in the **Session** panel.
 
 To return to the model configured in the selected profile, open the model selector and choose **Default model** (**Follow the selected profile's default model**). This clears the override for the current conversation; other conversations retain their saved model choices. Logging out clears all saved ChatUI model choices in this browser.
+
+### Conversation project and workspace
+
+The pencil button on a conversation in the sidebar used to rename it only (**Edit Session Name**). It now opens **Edit conversation**, with three fields:
+
+- **Session Name**: as before.
+- **Project**: choose a project to move the conversation into it, or **No project** to take it out.
+- **Workspace path**: the folder the Agent of this conversation uses to read and write files and run commands. Leave it empty to use the project's workspace; a conversation outside any project uses its own default folder. Enter an absolute local folder path, or the name of a subfolder of the AstrBot workspaces directory (`data/workspaces`), for example the folder another conversation or project already uses, so they share files. The folder must exist and be readable and writable. The value is written like a project's **Custom path** and takes priority over the project's workspace setting.
+
+You can also drag: drop a conversation on a project in the sidebar to move it there. A conversation inside a project can be dropped on another project, or back on the **Conversations** list to take it out of its project. A conversation belongs to at most one project.
+
+The workspace path is stored on the server, so other browsers, scheduled tasks and sub-agents use the same folder. Conversations created with an API key cannot set a workspace path. Changing the path does not move the files in the previous folder.
 
 ### File changes and undo
 
