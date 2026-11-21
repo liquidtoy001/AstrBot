@@ -47,7 +47,7 @@ test("the edit dialog starts from the conversation and saves trimmed fields", as
   try {
     assert.deepEqual(plain(dialog.state.projectItems), [
       { title: "conversation.noProject", value: "" },
-      { title: "📚 Docs", value: "p1" },
+      { title: "Docs", value: "p1" },
     ]);
     props.modelValue = true;
     await nextTick();
