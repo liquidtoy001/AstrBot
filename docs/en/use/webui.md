@@ -129,6 +129,19 @@ You can also drag: drop a conversation on a project in the sidebar to move it th
 
 The workspace path is stored on the server, so other browsers, scheduled tasks and sub-agents use the same folder. Conversations created with an API key cannot set a workspace path. Changing the path does not move the files in the previous folder.
 
+### Shared memory in a project
+
+The dialog for creating or editing a project has a new switch, **Share memory between conversations**, off by default. When it is on:
+
+- Every conversation in the project adds `MEMORY.md` from the project folder to the system prompt on each model request, so what one conversation recorded is visible to the other conversations in the project.
+- The system prompt tells the Agent where the file is and asks it to record what is worth keeping (decisions, preferences, lasting facts). The Agent writes with its file tools, so this needs the **Local** runtime. With other runtimes the Agent can only read the file, and you edit it yourself.
+- The file location is shown under the switch after the project has been saved once. With the **Shared project workspace** or **Custom path** workspace type the file is in that workspace folder; with **Per-session workspace** it is in `data/workspaces/project_<project ID>/`.
+- The file is plain Markdown that you can open and edit. Anything beyond 8000 characters is left out of the prompt, and the Agent is told to shorten the file.
+
+Note: in the **Workspace** permission mode the Agent can read and write only the workspace of the current conversation. If the project uses **Per-session workspace**, or a conversation has its own workspace path, the Agent cannot write the memory file (it still reads it). Use a shared project workspace if the Agent should record memory itself.
+
+Conversations outside a project and sessions on other platforms are not affected. Turning the switch off does not delete the file.
+
 ### File changes and undo
 
 When the Agent runs in the local (`local`) computer runtime, the cards of the file write and file edit tools show the change in ChatUI: the file path (relative to the conversation workspace; outside it, `~` stands for the home directory), lines added and removed, and, when expanded, the changed region (up to 40 lines per side, marked as truncated beyond that). The model receives only the usual text result, not this preview.
