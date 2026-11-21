@@ -51,8 +51,14 @@
           @click="handleProjectClick(project)"
           @keydown.enter="handleProjectClick(project)"
           @keydown.space.prevent="handleProjectClick(project)"
+          @contextmenu.prevent="openProjectMenu($event, project)"
         >
-          <span class="project-emoji">{{ project.emoji || "📁" }}</span>
+          <!-- The default folder emoji is left out; one the user chose stays. -->
+          <span
+            v-if="project.emoji && project.emoji !== '📁'"
+            class="project-emoji"
+            >{{ project.emoji }}</span
+          >
           <span class="project-title-wrap">
             <span class="project-title">{{ project.title }}</span>
             <ChevronDown
@@ -62,23 +68,30 @@
             />
             <ChevronRight v-else :size="16" class="project-chevron" />
           </span>
+          <Pin
+            v-if="project.pinned"
+            class="project-pin-mark"
+            :size="13"
+            aria-hidden="true"
+          />
           <span class="project-actions" @click.stop>
             <v-btn
               icon
               size="x-small"
               variant="text"
               class="project-action-btn"
-              :title="tm('project.edit')"
-              @click="$emit('editProject', project)"
+              :title="tm(project.pinned ? 'actions.unpin' : 'actions.pin')"
+              @click="$emit('pinProject', project)"
             >
-              <Pencil :size="15" />
+              <PinOff v-if="project.pinned" :size="15" />
+              <Pin v-else :size="15" />
             </v-btn>
             <v-btn
               icon
               size="x-small"
               variant="text"
               class="project-action-btn"
-              :title="tm('actions.deleteChat')"
+              :title="tm('project.delete')"
               @click="handleDeleteProject(project)"
             >
               <Trash2 :size="15" />
@@ -98,63 +111,21 @@
               {{ tm("project.loadingSessions") }}
             </div>
             <template v-else-if="projectSessionList(project.project_id).length">
-              <div
+              <SidebarSessionRow
                 v-for="session in projectSessionList(project.project_id)"
                 :key="session.session_id"
-                class="project-session-row"
-                :class="{ active: activeSessionId === session.session_id }"
-                role="button"
-                tabindex="0"
-                draggable="true"
-                @dragstart="
-                  $event.dataTransfer?.setData(
-                    SESSION_DRAG_TYPE,
-                    session.session_id,
-                  )
-                "
-                @click="$emit('selectSession', session.session_id)"
-                @keydown.enter="$emit('selectSession', session.session_id)"
-                @keydown.space.prevent="$emit('selectSession', session.session_id)"
-              >
-                <span class="project-session-title">
-                  {{ sessionTitle(session) }}
-                </span>
-                <span class="project-session-actions" @click.stop>
-                  <v-btn
-                    icon
-                    size="x-small"
-                    variant="text"
-                    class="project-action-btn"
-                    :title="tm('conversation.edit')"
-                    @click="
-                      $emit(
-                        'editSessionTitle',
-                        session.session_id,
-                        session.display_name || '',
-                      )
-                    "
-                  >
-                    <Pencil :size="15" />
-                  </v-btn>
-                  <v-btn
-                    icon
-                    size="x-small"
-                    variant="text"
-                    class="project-action-btn"
-                    :title="tm('actions.deleteChat')"
-                    @click="handleDeleteSession(project.project_id, session)"
-                  >
-                    <Trash2 :size="15" />
-                  </v-btn>
-                </span>
-                <v-progress-circular
-                  v-if="sessionRunning(session.session_id)"
-                  class="project-session-progress"
-                  indeterminate
-                  size="14"
-                  width="2"
-                />
-              </div>
+                :session-id="session.session_id"
+                :title="sessionTitle(session)"
+                :active="activeSessionId === session.session_id"
+                :running="sessionRunning(session.session_id)"
+                :pinned="session.pinned"
+                pin-mark
+                nested
+                @select="$emit('selectSession', session.session_id)"
+                @toggle-pin="$emit('pinSession', session)"
+                @delete="handleDeleteSession(project.project_id, session)"
+                @menu="$emit('sessionMenu', $event, session)"
+              />
             </template>
             <div v-else class="project-session-empty">
               {{ tm("project.noSessions") }}
@@ -163,22 +134,33 @@
         </Transition>
       </div>
     </div>
+
+    <ChatContextMenu
+      v-model="projectMenuOpen"
+      :position="projectMenuPosition"
+      :items="projectMenuItems"
+      @select="handleProjectMenu"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
 import { chatPreferences } from "@/utils/chatPreferences";
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import {
   ChevronDown,
   ChevronRight,
   Pencil,
+  Pin,
+  PinOff,
   Plus,
   Trash2,
 } from "@lucide/vue";
 import { useModuleI18n } from "@/i18n/composables";
 import { askForConfirmation, useConfirmDialog } from "@/utils/confirmDialog";
 import { SESSION_DRAG_TYPE } from "@/composables/useProjects";
+import ChatContextMenu from "@/components/chat/ChatContextMenu.vue";
+import SidebarSessionRow from "@/components/chat/SidebarSessionRow.vue";
 
 export interface Project {
   project_id: string;
@@ -190,6 +172,7 @@ export interface Project {
   resolved_workspace_path?: string | null;
   shared_memory?: boolean;
   memory_path?: string | null;
+  pinned?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -198,6 +181,7 @@ export interface ProjectSession {
   session_id: string;
   display_name?: string | null;
   workspace_path?: string | null;
+  pinned?: boolean;
   updated_at: string;
 }
 
@@ -222,9 +206,11 @@ const emit = defineEmits<{
   deleteProject: [projectId: string];
   toggleProject: [projectId: string, expanded: boolean];
   selectSession: [sessionId: string];
-  editSessionTitle: [sessionId: string, title: string];
   deleteSession: [sessionId: string, projectId: string];
   moveSession: [sessionId: string, projectId: string];
+  pinProject: [project: Project];
+  pinSession: [session: ProjectSession];
+  sessionMenu: [event: MouseEvent, session: ProjectSession];
 }>();
 
 const { tm } = useModuleI18n("features/chat");
@@ -304,6 +290,34 @@ function handleSessionDrop(event: DragEvent, projectId: string) {
   dropProjectId.value = null;
   const sessionId = event.dataTransfer?.getData(SESSION_DRAG_TYPE);
   if (sessionId) emit("moveSession", sessionId, projectId);
+}
+
+// The project whose right-click menu is open.
+const menuProject = ref<Project | null>(null);
+const projectMenuOpen = ref(false);
+const projectMenuPosition = ref<[number, number]>([0, 0]);
+const projectMenuItems = computed(() => [
+  { key: "edit", title: tm("project.edit"), icon: Pencil },
+  {
+    key: "pin",
+    title: tm(menuProject.value?.pinned ? "actions.unpin" : "actions.pin"),
+    icon: menuProject.value?.pinned ? PinOff : Pin,
+  },
+  { key: "delete", title: tm("project.delete"), icon: Trash2, danger: true },
+]);
+
+function openProjectMenu(event: MouseEvent, project: Project) {
+  menuProject.value = project;
+  projectMenuPosition.value = [event.clientX, event.clientY];
+  projectMenuOpen.value = true;
+}
+
+function handleProjectMenu(key: string) {
+  const project = menuProject.value;
+  if (!project) return;
+  if (key === "edit") emit("editProject", project);
+  if (key === "pin") emit("pinProject", project);
+  if (key === "delete") void handleDeleteProject(project);
 }
 
 function handleProjectClick(project: Project) {
@@ -411,8 +425,7 @@ async function handleDeleteSession(projectId: string, session: ProjectSession) {
   gap: 2px;
 }
 
-.project-row,
-.project-session-row {
+.project-row {
   width: 100%;
   min-height: 30px;
   border: 0;
@@ -421,22 +434,24 @@ async function handleDeleteSession(projectId: string, session: ProjectSession) {
   color: inherit;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 56px 4px 10px;
+  gap: 7px;
+  padding: 4px 10px;
   position: relative;
   box-sizing: border-box;
   cursor: pointer;
   text-align: left;
 }
 
-.project-row:hover,
-.project-session-row:hover {
+.project-row:hover {
   background: var(--chat-session-active-bg);
 }
 
-/* Active session stays clearly highlighted (subtle in light mode otherwise). */
-.project-row.active,
-.project-session-row.active {
+.project-row:hover,
+.project-row:focus-within {
+  padding-right: 56px;
+}
+
+.project-row.active {
   background: rgba(var(--v-theme-primary), 0.22);
 }
 
@@ -463,37 +478,26 @@ async function handleDeleteSession(projectId: string, session: ProjectSession) {
   gap: 3px;
 }
 
-.project-title,
-.project-session-title {
+.project-title {
   min-width: 0;
+  flex: 0 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
 }
 
-.project-title {
-  flex: 0 1 auto;
-}
-
-.project-session-title {
-  flex: 1;
-}
-
-.project-chevron {
+.project-chevron,
+.project-pin-mark {
   flex: 0 0 auto;
   color: var(--chat-muted);
 }
 
-.project-actions,
-.project-session-actions {
+.project-actions {
   display: flex;
   align-items: center;
   gap: 2px;
-  flex-shrink: 0;
-  opacity: 0;
-  pointer-events: none;
   position: absolute;
   right: 0;
   top: 50%;
@@ -502,16 +506,17 @@ async function handleDeleteSession(projectId: string, session: ProjectSession) {
 }
 
 .project-row:hover .project-actions,
-.project-row:focus-within .project-actions,
-.project-session-row:hover .project-session-actions,
-.project-session-row:focus-within .project-session-actions {
-  opacity: 1;
-  pointer-events: auto;
+.project-row:focus-within .project-actions {
   visibility: visible;
 }
 
+.project-row:hover .project-pin-mark,
+.project-row:focus-within .project-pin-mark {
+  visibility: hidden;
+}
+
 .project-session-list {
-  padding: 2px 0 4px 26px;
+  padding: 0 0 6px 12px;
 }
 
 .project-session-fade-enter-active {
@@ -525,23 +530,6 @@ async function handleDeleteSession(projectId: string, session: ProjectSession) {
 .project-session-fade-enter-from,
 .project-session-fade-leave-to {
   opacity: 0;
-}
-
-.project-session-progress {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  flex-shrink: 0;
-  transition:
-    opacity 0.14s ease,
-    visibility 0.14s ease;
-}
-
-.project-session-row:hover .project-session-progress,
-.project-session-row:focus-within .project-session-progress {
-  opacity: 0;
-  visibility: hidden;
 }
 
 .project-list-empty,

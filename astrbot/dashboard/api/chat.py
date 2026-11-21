@@ -482,6 +482,7 @@ async def update_chat_session(
             session_id,
             payload.display_name,
             payload.workspace_path,
+            payload.pinned,
         )
     )
 

@@ -9,6 +9,8 @@ export interface Session {
     display_name: string | null;
     // The conversation's own workspace path; empty to follow its project.
     workspace_path?: string | null;
+    // Listed before the other conversations.
+    pinned?: boolean;
     updated_at: string;
     platform_id: string;
     creator: string;

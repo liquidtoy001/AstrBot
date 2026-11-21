@@ -84,6 +84,8 @@
     "share": "共有",
     "newChat": "新しいチャット",
     "deleteChat": "この会話を削除",
+    "pin": "ピン留め",
+    "unpin": "ピン留めを解除",
     "editTitle": "タイトルを編集",
     "fullscreen": "全画面モード",
     "exitFullscreen": "全画面を終了",
@@ -115,7 +117,7 @@
   "conversation": {
     "loading": "会話を読み込み中",
     "loadFailed": "会話を読み込めませんでした",
-    "title": "会話",
+    "title": "最近の会話",
     "newConversation": "新しい会話",
     "noHistory": "会話履歴がありません",
     "systemStatus": "システム状態",
@@ -130,6 +132,8 @@
     "edit": "会話を編集",
     "project": "プロジェクト",
     "noProject": "プロジェクトなし",
+    "pinned": "ピン留め",
+    "moveToProject": "プロジェクトに移動",
     "workspacePath": "ワークスペースのパス",
     "workspacePathHint": "空欄の場合は、プロジェクトのワークスペースまたは既定のフォルダーを使用します。ローカルフォルダーの絶対パス、または AstrBot ワークスペースディレクトリ内のサブフォルダー名を入力できます。",
     "updateFailed": "会話設定の保存に失敗しました",
@@ -208,6 +212,7 @@
     "emoji": "アイコン（Emoji）",
     "description": "プロジェクトの説明（任意）",
     "moreSettings": "その他の設定",
+    "delete": "プロジェクトを削除",
     "sharedMemory": {
       "label": "プロジェクト内の会話で記憶を共有",
       "hint": "オンにすると、プロジェクト内のすべての会話がプロジェクトフォルダーの MEMORY.md を読み込み、Agent は覚えておくべき内容をそこに書き込めます。このファイルは自分で編集することもできます。"

@@ -133,6 +133,10 @@ class ChatProjectRequest(OpenModel):
             "Whether conversations in the project share the project's MEMORY.md file."
         ),
     )
+    pinned: bool | None = Field(
+        default=None,
+        description="Whether the ChatUI lists the project before the others.",
+    )
 
 
 class ChatProjectSessionRequest(OpenModel):
@@ -152,6 +156,10 @@ class ChatSessionPatchRequest(OpenModel):
             "Dashboard-only workspace path of this conversation; an empty "
             "string restores the project or default workspace."
         ),
+    )
+    pinned: bool | None = Field(
+        default=None,
+        description="Whether the ChatUI lists the conversation before the others.",
     )
 
 

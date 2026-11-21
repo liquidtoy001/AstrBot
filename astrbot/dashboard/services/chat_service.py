@@ -2013,6 +2013,7 @@ class ChatService:
                     "creator": session.creator,
                     "display_name": session.display_name,
                     "workspace_path": session.workspace_path,
+                    "pinned": session.pinned,
                     "is_group": session.is_group,
                     "created_at": to_utc_isoformat(session.created_at),
                     "updated_at": to_utc_isoformat(session.updated_at),
@@ -2172,6 +2173,7 @@ class ChatService:
                 "creator": session.creator,
                 "display_name": session.display_name,
                 "workspace_path": session.workspace_path,
+                "pinned": session.pinned,
                 "is_group": session.is_group,
                 "created_at": to_utc_isoformat(session.created_at),
                 "updated_at": to_utc_isoformat(session.updated_at),
@@ -2542,8 +2544,9 @@ class ChatService:
         session_id: str,
         display_name,
         workspace_path: str | None = None,
+        pinned: bool | None = None,
     ) -> dict:
-        """Update the display name and workspace path of an owned session.
+        """Update the display name, workspace path and pin of an owned session.
 
         Args:
             username: Dashboard username or API key identity.
@@ -2552,6 +2555,7 @@ class ChatService:
             workspace_path: Workspace path of this conversation, written like a
                 project's custom workspace path. An empty string restores the
                 project or default workspace; None keeps the current value.
+            pinned: Whether the conversation is pinned; None keeps the state.
 
         Returns:
             An empty dict.
@@ -2582,6 +2586,7 @@ class ChatService:
             session_id=session_id,
             display_name=display_name,
             workspace_path=workspace_path,
+            pinned=pinned,
         )
         return {}
 

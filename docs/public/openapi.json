@@ -8032,6 +8032,10 @@
           "workspace_path": {
             "type": "string",
             "description": "Dashboard-only workspace path of this conversation; an empty string restores the project or default workspace."
+          },
+          "pinned": {
+            "type": "boolean",
+            "description": "Whether the ChatUI lists the conversation before the others."
           }
         },
         "additionalProperties": false
@@ -8246,6 +8250,10 @@
           "shared_memory": {
             "type": "boolean",
             "description": "Whether conversations in the project share the project's MEMORY.md file."
+          },
+          "pinned": {
+            "type": "boolean",
+            "description": "Whether the ChatUI lists the project before the others."
           }
         },
         "additionalProperties": false

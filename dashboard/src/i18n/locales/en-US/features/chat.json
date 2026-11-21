@@ -84,6 +84,8 @@
     "share": "Share",
     "newChat": "New Chat",
     "deleteChat": "Delete this conversation",
+    "pin": "Pin",
+    "unpin": "Unpin",
     "editTitle": "Edit Title",
     "fullscreen": "Fullscreen Mode",
     "exitFullscreen": "Exit Fullscreen",
@@ -115,7 +117,7 @@
   "conversation": {
     "loading": "Loading conversations",
     "loadFailed": "Could not load conversations",
-    "title": "Conversations",
+    "title": "Recent conversations",
     "newConversation": "New Conversation",
     "noHistory": "No conversation history",
     "systemStatus": "System Status",
@@ -130,6 +132,8 @@
     "edit": "Edit conversation",
     "project": "Project",
     "noProject": "No project",
+    "pinned": "Pinned",
+    "moveToProject": "Move to project",
     "workspacePath": "Workspace path",
     "workspacePathHint": "Leave empty to use the project's workspace or the default folder. Enter an absolute local folder path, or the name of a subfolder of the AstrBot workspaces directory.",
     "updateFailed": "Failed to save the conversation settings",
@@ -208,6 +212,7 @@
     "emoji": "Icon (Emoji)",
     "description": "Description (Optional)",
     "moreSettings": "More settings",
+    "delete": "Delete project",
     "sharedMemory": {
       "label": "Share memory between conversations",
       "hint": "When on, every conversation in the project reads MEMORY.md in the project folder, and the Agent can write things worth remembering into it. You can also edit the file yourself."

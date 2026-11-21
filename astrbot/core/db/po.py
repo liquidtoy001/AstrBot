@@ -424,6 +424,8 @@ class PlatformSession(TimestampMixin, SQLModel, table=True):
     """0 for private chat, 1 for group chat (not implemented yet)"""
     workspace_path: str | None = Field(default=None, max_length=1024)
     """Workspace path of this ChatUI conversation; overrides its project's workspace"""
+    pinned: bool = Field(default=False, nullable=False)
+    """Whether the ChatUI lists this conversation before the others"""
 
     __table_args__ = (
         UniqueConstraint(
@@ -589,6 +591,8 @@ class ChatUIProject(TimestampMixin, SQLModel, table=True):
     """Custom workspace path"""
     shared_memory: bool = Field(default=False, nullable=False)
     """Whether conversations in the project share the project's MEMORY.md"""
+    pinned: bool = Field(default=False, nullable=False)
+    """Whether the ChatUI lists this project before the others"""
 
     __table_args__ = (
         UniqueConstraint(

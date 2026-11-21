@@ -84,6 +84,8 @@
     "share": "分享",
     "newChat": "创建对话",
     "deleteChat": "删除此对话",
+    "pin": "置顶",
+    "unpin": "取消置顶",
     "editTitle": "编辑标题",
     "fullscreen": "全屏模式",
     "exitFullscreen": "退出全屏",
@@ -115,7 +117,7 @@
   "conversation": {
     "loading": "正在加载会话",
     "loadFailed": "会话列表加载失败",
-    "title": "对话",
+    "title": "最近会话",
     "newConversation": "新的聊天",
     "noHistory": "暂无对话历史",
     "systemStatus": "系统状态",
@@ -130,6 +132,8 @@
     "edit": "编辑对话",
     "project": "所属项目",
     "noProject": "不属于任何项目",
+    "pinned": "置顶",
+    "moveToProject": "移动到项目",
     "workspacePath": "工作区路径",
     "workspacePathHint": "留空则使用所属项目的工作区或默认目录。可填本地文件夹的绝对路径，或 AstrBot 工作区目录下的子目录名。",
     "updateFailed": "保存对话设置失败",
@@ -208,6 +212,7 @@
     "emoji": "图标 (Emoji)",
     "description": "项目描述（可选）",
     "moreSettings": "更多设置",
+    "delete": "删除项目",
     "sharedMemory": {
       "label": "项目内对话共享记忆",
       "hint": "打开后，项目里的每个对话都会读取项目目录里的 MEMORY.md，Agent 可以把需要长期记住的内容写进去。你也可以直接编辑这个文件。"

@@ -861,6 +861,7 @@ class BaseDatabase(abc.ABC):
         session_id: str,
         display_name: str | None = None,
         workspace_path: str | None = None,
+        pinned: bool | None = None,
     ) -> None:
         """Update a Platform session's timestamp and the given fields.
 
@@ -869,6 +870,8 @@ class BaseDatabase(abc.ABC):
             display_name: New display name, or None to keep the current one.
             workspace_path: New workspace path, an empty string to clear it, or
                 None to keep the current one.
+            pinned: Whether the conversation is pinned, or None to keep the
+                current state. Pinning alone leaves the timestamp unchanged.
         """
         ...
 
@@ -1001,6 +1004,7 @@ class BaseDatabase(abc.ABC):
         workspace_type: str | None = None,
         workspace_path: str | None = None,
         shared_memory: bool | None = None,
+        pinned: bool | None = None,
     ) -> None:
         """Update a ChatUI project."""
         ...

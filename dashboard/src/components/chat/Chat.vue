@@ -125,6 +125,25 @@
         class="sidebar-content"
         @scroll.passive="loadMoreSessions"
       >
+        <section v-if="pinnedSessions.length" class="sidebar-section session-list">
+          <div class="sidebar-section-header pinned-section-header">
+            {{ tm("conversation.pinned") }}
+          </div>
+          <SidebarSessionRow
+            v-for="session in pinnedSessions"
+            :key="session.session_id"
+            :session-id="session.session_id"
+            :title="sessionTitle(session)"
+            :active="!isProviderWorkspace && currSessionId === session.session_id"
+            :running="isSessionRunning(session.session_id)"
+            pinned
+            @select="selectSession(session.session_id)"
+            @toggle-pin="toggleSessionPin(session)"
+            @delete="deleteSidebarSession(session)"
+            @menu="openSessionMenu($event, session)"
+          />
+        </section>
+
         <ProjectList
           ref="sidebarProjects"
           :projects="projects"
@@ -139,9 +158,11 @@
           @toggle-project="handleProjectToggle"
           @select-project="selectProject"
           @select-session="selectProjectSession"
-          @edit-session-title="openSessionEditDialog"
           @delete-session="deleteProjectSession"
           @move-session="moveSessionToProject"
+          @pin-project="toggleProjectPin"
+          @pin-session="toggleSessionPin"
+          @session-menu="openSessionMenu"
         />
 
         <!-- Dropping a project's conversation here takes it out of the project. -->
@@ -175,57 +196,19 @@
               <ChevronRight v-else :size="16" aria-hidden="true" />
             </button>
           </div>
-          <div
-            v-for="session in sidebarSessions"
+          <SidebarSessionRow
+            v-for="session in unpinnedSessions"
             v-show="sessionsExpanded"
             :key="session.session_id"
-            class="session-item"
-            :class="{
-              active:
-                !isProviderWorkspace && currSessionId === session.session_id,
-              running: isSessionRunning(session.session_id),
-            }"
-            role="button"
-            tabindex="0"
-            draggable="true"
-            @dragstart="
-              $event.dataTransfer?.setData(SESSION_DRAG_TYPE, session.session_id)
-            "
-            @click="selectSession(session.session_id)"
-            @keydown.enter="selectSession(session.session_id)"
-            @keydown.space.prevent="selectSession(session.session_id)"
-          >
-            <span class="session-title">{{ sessionTitle(session) }}</span>
-            <div class="session-actions" @click.stop>
-              <v-btn
-                icon
-                size="x-small"
-                variant="text"
-                class="session-action-btn"
-                :title="tm('conversation.edit')"
-                @click="openSessionEditDialog(session.session_id)"
-              >
-                <Pencil :size="15" />
-              </v-btn>
-              <v-btn
-                icon
-                size="x-small"
-                variant="text"
-                class="session-action-btn"
-                :title="tm('actions.deleteChat')"
-                @click="deleteSidebarSession(session)"
-              >
-                <Trash2 :size="15" />
-              </v-btn>
-            </div>
-            <v-progress-circular
-              v-if="isSessionRunning(session.session_id)"
-              class="session-progress"
-              indeterminate
-              size="16"
-              width="2"
-            />
-          </div>
+            :session-id="session.session_id"
+            :title="sessionTitle(session)"
+            :active="!isProviderWorkspace && currSessionId === session.session_id"
+            :running="isSessionRunning(session.session_id)"
+            @select="selectSession(session.session_id)"
+            @toggle-pin="toggleSessionPin(session)"
+            @delete="deleteSidebarSession(session)"
+            @menu="openSessionMenu($event, session)"
+          />
           <v-progress-linear
             v-if="sessionsExpanded && sessionsPagination.loading"
             color="primary"
@@ -269,6 +252,13 @@
         </v-btn>
       </div>
     </v-navigation-drawer>
+
+    <ChatContextMenu
+      v-model="sessionMenuOpen"
+      :position="sessionMenuPosition"
+      :items="sessionMenuItems"
+      @select="handleSessionMenu"
+    />
 
     <ChatSettingsDialog
       v-model="settingsOpen"
@@ -688,8 +678,11 @@ import {
   ChevronDown,
   ChevronRight,
   Box,
+  FolderInput,
   PanelLeft,
   Pencil,
+  Pin,
+  PinOff,
   Settings,
   SquarePen,
   Trash2,
@@ -701,6 +694,8 @@ import ProjectDialog, {
   type ProjectFormData,
 } from "@/components/chat/ProjectDialog.vue";
 import ProjectList, { type Project } from "@/components/chat/ProjectList.vue";
+import ChatContextMenu from "@/components/chat/ChatContextMenu.vue";
+import SidebarSessionRow from "@/components/chat/SidebarSessionRow.vue";
 import ProjectView from "@/components/chat/ProjectView.vue";
 import SessionEditDialog, {
   type SessionEditData,
@@ -807,6 +802,7 @@ const {
   createProject,
   updateProject,
   deleteProject: deleteProjectById,
+  setProjectPinned,
   addSessionToProject,
   removeSessionFromProject,
   getProjectSessions,
@@ -1111,6 +1107,12 @@ const sidebarSessions = computed(() => {
   }
   return sessions.value;
 });
+const pinnedSessions = computed(() =>
+  sidebarSessions.value.filter((session) => session.pinned),
+);
+const unpinnedSessions = computed(() =>
+  sidebarSessions.value.filter((session) => !session.pinned),
+);
 const currentSessionTitle = computed(() =>
   currentSession.value ? sessionTitle(currentSession.value) : "",
 );
@@ -1545,7 +1547,14 @@ async function openProviderWorkspace(type = "chat_completion") {
   await router.push({ path: `${basePath()}/models`, query: { type } });
 }
 
-function sessionTitle(session: Session) {
+/** What the sidebar needs of a conversation, in a project or not. */
+type SidebarSession = {
+  session_id: string;
+  display_name?: string | null;
+  pinned?: boolean;
+};
+
+function sessionTitle(session: SidebarSession) {
   return session.display_name?.trim() || tm("conversation.newConversation");
 }
 
@@ -1775,16 +1784,101 @@ async function moveSessionToProject(
   return true;
 }
 
-async function deleteSidebarSession(session: Session) {
+async function deleteSidebarSession(session: SidebarSession) {
   const title = sessionTitle(session);
   const message = tm("conversation.confirmDelete", { name: title });
   if (!(await askForConfirmation(message, confirmDialog))) return;
 
   const wasCurrent = currSessionId.value === session.session_id;
+  const projectId = sessionProjectId(session.session_id);
   await deleteSession(session.session_id);
+  if (projectId) await loadProjectSessions(projectId);
   if (wasCurrent) {
     selectedProjectId.value = null;
     await router.push(basePath());
+  }
+}
+
+/** Pin a conversation, or unpin a pinned one, and reload the list it is in. */
+async function toggleSessionPin(session: SidebarSession) {
+  try {
+    const response = await chatApi.updateSession(session.session_id, {
+      pinned: !session.pinned,
+    });
+    if (response.data.status !== "ok") throw new Error(response.data.message || "");
+  } catch (error) {
+    console.error("Failed to pin the conversation:", error);
+    toast.error(tm("conversation.updateFailed"));
+    return;
+  }
+  const projectId = sessionProjectId(session.session_id);
+  await (projectId ? loadProjectSessions(projectId) : getSessions());
+}
+
+async function toggleProjectPin(project: Project) {
+  if (!(await setProjectPinned(project.project_id, !project.pinned))) {
+    toast.error(tm("conversation.updateFailed"));
+  }
+}
+
+// The conversation whose right-click menu is open.
+const menuSession = ref<SidebarSession | null>(null);
+const sessionMenuOpen = ref(false);
+const sessionMenuPosition = ref<[number, number]>([0, 0]);
+const sessionMenuItems = computed(() => {
+  const session = menuSession.value;
+  if (!session) return [];
+  const projectId = sessionProjectId(session.session_id);
+  // "move:<project id>" moves into a project; "move:" takes it out.
+  const targets = [
+    ...projects.value
+      .filter((project) => project.project_id !== projectId)
+      .map((project) => ({
+        key: `move:${project.project_id}`,
+        title: `${project.emoji || "📁"} ${project.title}`,
+      })),
+    ...(projectId ? [{ key: "move:", title: tm("conversation.noProject") }] : []),
+  ];
+  return [
+    { key: "edit", title: tm("conversation.edit"), icon: Pencil },
+    ...(targets.length
+      ? [
+          {
+            key: "move",
+            title: tm("conversation.moveToProject"),
+            icon: FolderInput,
+            children: targets,
+          },
+        ]
+      : []),
+    {
+      key: "pin",
+      title: tm(session.pinned ? "actions.unpin" : "actions.pin"),
+      icon: session.pinned ? PinOff : Pin,
+    },
+    {
+      key: "delete",
+      title: tm("actions.deleteChat"),
+      icon: Trash2,
+      danger: true,
+    },
+  ];
+});
+
+function openSessionMenu(event: MouseEvent, session: SidebarSession) {
+  menuSession.value = session;
+  sessionMenuPosition.value = [event.clientX, event.clientY];
+  sessionMenuOpen.value = true;
+}
+
+async function handleSessionMenu(key: string) {
+  const session = menuSession.value;
+  if (!session) return;
+  if (key === "edit") openSessionEditDialog(session.session_id);
+  if (key === "pin") await toggleSessionPin(session);
+  if (key === "delete") await deleteSidebarSession(session);
+  if (key.startsWith("move:")) {
+    await moveSessionToProject(session.session_id, key.slice(5) || null);
   }
 }
 
@@ -2923,95 +3017,8 @@ async function stopCurrentSession() {
   gap: 2px;
 }
 
-.session-item {
-  width: 100%;
-  min-height: 30px;
-  border: 0;
-  border-radius: var(--astrbot-radius-navigation);
-  background: transparent;
-  color: inherit;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 4px 10px;
-  position: relative;
-  box-sizing: border-box;
-  cursor: pointer;
-  text-align: left;
-}
-
-.session-item:hover {
-  background: var(--chat-session-active-bg);
-}
-
-/* Active session stays clearly highlighted (subtle in light mode otherwise). */
-.session-item.active {
-  background: rgba(var(--v-theme-primary), 0.22);
-}
-
-.session-item.running {
-  padding-right: 27px;
-}
-
-.session-item:hover,
-.session-item:focus-within {
-  padding-right: 56px;
-}
-
-.session-title {
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.session-progress {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  flex-shrink: 0;
-  transition:
-    opacity 0.14s ease,
-    visibility 0.14s ease;
-}
-
-.session-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-  opacity: 0;
-  pointer-events: none;
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  visibility: hidden;
-}
-
-.session-item:hover .session-actions,
-.session-item:focus-within .session-actions {
-  opacity: 1;
-  pointer-events: auto;
-  visibility: visible;
-}
-
-.session-item:hover .session-progress,
-.session-item:focus-within .session-progress {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.session-action-btn {
-  color: var(--chat-muted);
-}
-
-.session-action-btn:hover {
-  color: rgb(var(--v-theme-on-surface));
+.pinned-section-header {
+  min-height: 36px;
 }
 
 .sidebar-footer {

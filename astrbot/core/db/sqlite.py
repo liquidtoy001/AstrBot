@@ -307,6 +307,13 @@ class SQLiteDatabase(BaseDatabase):
                     "ADD COLUMN shared_memory BOOLEAN NOT NULL DEFAULT 0"
                 )
             )
+        if "pinned" not in columns:
+            await conn.execute(
+                text(
+                    "ALTER TABLE chatui_projects "
+                    "ADD COLUMN pinned BOOLEAN NOT NULL DEFAULT 0"
+                )
+            )
         await conn.execute(
             text(
                 "UPDATE chatui_projects SET "
@@ -320,11 +327,19 @@ class SQLiteDatabase(BaseDatabase):
         )
 
     async def _ensure_platform_session_workspace_column(self, conn) -> None:
-        """Ensure platform_sessions has the per-conversation workspace column."""
+        """Ensure platform_sessions has the per-conversation ChatUI columns."""
         result = await conn.execute(text("PRAGMA table_info(platform_sessions)"))
-        if "workspace_path" not in {row[1] for row in result.fetchall()}:
+        columns = {row[1] for row in result.fetchall()}
+        if "workspace_path" not in columns:
             await conn.execute(
                 text("ALTER TABLE platform_sessions ADD COLUMN workspace_path VARCHAR")
+            )
+        if "pinned" not in columns:
+            await conn.execute(
+                text(
+                    "ALTER TABLE platform_sessions "
+                    "ADD COLUMN pinned BOOLEAN NOT NULL DEFAULT 0"
+                )
             )
 
     # ====
@@ -2365,7 +2380,9 @@ class SQLiteDatabase(BaseDatabase):
 
             result_query = (
                 base_query.order_by(
-                    desc(PlatformSession.updated_at), desc(PlatformSession.session_id)
+                    desc(PlatformSession.pinned),
+                    desc(PlatformSession.updated_at),
+                    desc(PlatformSession.session_id),
                 )
                 .offset(offset)
                 .limit(page_size)
@@ -2380,6 +2397,7 @@ class SQLiteDatabase(BaseDatabase):
         session_id: str,
         display_name: str | None = None,
         workspace_path: str | None = None,
+        pinned: bool | None = None,
     ) -> None:
         """Update a Platform session's timestamp and the given fields.
 
@@ -2388,11 +2406,20 @@ class SQLiteDatabase(BaseDatabase):
             display_name: New display name, or None to keep the current one.
             workspace_path: New workspace path, an empty string to clear it, or
                 None to keep the current one.
+            pinned: Whether the conversation is pinned, or None to keep the
+                current state. Pinning alone is not activity, so it leaves the
+                timestamp and therefore the list order unchanged.
         """
         async with self.get_db() as session:
             session: AsyncSession
             async with session.begin():
                 values: dict[str, T.Any] = {"updated_at": datetime.now(timezone.utc)}
+                if pinned is not None:
+                    values["pinned"] = pinned
+                    if display_name is None and workspace_path is None:
+                        # Assigning the column to itself also stops the
+                        # model's automatic timestamp refresh.
+                        values["updated_at"] = col(PlatformSession.updated_at)
                 if display_name is not None:
                     values["display_name"] = display_name
                 if workspace_path is not None:
@@ -2686,7 +2713,7 @@ class SQLiteDatabase(BaseDatabase):
             result = await session.execute(
                 select(ChatUIProject)
                 .where(col(ChatUIProject.creator) == creator)
-                .order_by(desc(ChatUIProject.updated_at))
+                .order_by(desc(ChatUIProject.pinned), desc(ChatUIProject.updated_at))
                 .limit(page_size)
                 .offset(offset),
             )
@@ -2701,12 +2728,40 @@ class SQLiteDatabase(BaseDatabase):
         workspace_type: str | None = None,
         workspace_path: str | None = None,
         shared_memory: bool | None = None,
+        pinned: bool | None = None,
     ) -> None:
-        """Update a ChatUI project."""
+        """Update a ChatUI project.
+
+        Args:
+            project_id: Project ID.
+            title: New title, or None to keep the current one.
+            emoji: New emoji, or None to keep the current one.
+            description: New description, or None to keep the current one.
+            workspace_type: New workspace mode; also replaces the workspace path.
+            workspace_path: Custom workspace path stored with ``workspace_type``.
+            shared_memory: Whether conversations share the project's memory file.
+            pinned: Whether the project is pinned. Pinning alone leaves the
+                timestamp and therefore the list order unchanged.
+        """
         async with self.get_db() as session:
             session: AsyncSession
             async with session.begin():
                 values: dict[str, T.Any] = {"updated_at": datetime.now(timezone.utc)}
+                if pinned is not None:
+                    values["pinned"] = pinned
+                    if all(
+                        value is None
+                        for value in (
+                            title,
+                            emoji,
+                            description,
+                            workspace_type,
+                            shared_memory,
+                        )
+                    ):
+                        # Assigning the column to itself also stops the
+                        # model's automatic timestamp refresh.
+                        values["updated_at"] = col(ChatUIProject.updated_at)
                 if title is not None:
                     values["title"] = title
                 if emoji is not None:
@@ -2797,7 +2852,9 @@ class SQLiteDatabase(BaseDatabase):
                     == col(SessionProjectRelation.session_id),
                 )
                 .where(col(SessionProjectRelation.project_id) == project_id)
-                .order_by(desc(PlatformSession.updated_at))
+                .order_by(
+                    desc(PlatformSession.pinned), desc(PlatformSession.updated_at)
+                )
                 .limit(page_size)
                 .offset(offset),
             )

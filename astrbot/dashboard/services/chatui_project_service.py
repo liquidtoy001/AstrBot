@@ -121,6 +121,9 @@ class ChatUIProjectService:
                 if isinstance(payload.get("shared_memory"), bool)
                 else None
             ),
+            pinned=(
+                payload["pinned"] if isinstance(payload.get("pinned"), bool) else None
+            ),
         )
 
     async def delete_project(self, username: str, project_id: str | None) -> None:
@@ -514,6 +517,7 @@ class ChatUIProjectService:
             "workspace_path": workspace_path,
             "resolved_workspace_path": resolved_workspace_path,
             "shared_memory": shared_memory,
+            "pinned": bool(getattr(project, "pinned", False)),
             "memory_path": memory_path,
             "created_at": to_utc_isoformat(project.created_at),
             "updated_at": to_utc_isoformat(project.updated_at),
@@ -527,6 +531,7 @@ class ChatUIProjectService:
             "creator": session.creator,
             "display_name": session.display_name,
             "workspace_path": session.workspace_path,
+            "pinned": session.pinned,
             "is_group": session.is_group,
             "created_at": to_utc_isoformat(session.created_at),
             "updated_at": to_utc_isoformat(session.updated_at),

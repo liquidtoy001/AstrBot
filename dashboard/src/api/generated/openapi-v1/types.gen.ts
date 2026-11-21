@@ -154,6 +154,10 @@ export type ChatProjectRequest = {
      * Whether conversations in the project share the project's MEMORY.md file.
      */
     shared_memory?: boolean;
+    /**
+     * Whether the ChatUI lists the project before the others.
+     */
+    pinned?: boolean;
 };
 
 /**
@@ -223,6 +227,10 @@ export type ChatSessionPatchRequest = {
      * Dashboard-only workspace path of this conversation; an empty string restores the project or default workspace.
      */
     workspace_path?: string;
+    /**
+     * Whether the ChatUI lists the conversation before the others.
+     */
+    pinned?: boolean;
 };
 
 export type ChatSessionPersonaRequest = {

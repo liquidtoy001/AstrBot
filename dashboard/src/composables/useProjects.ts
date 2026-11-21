@@ -89,6 +89,19 @@ export function useProjects() {
         }
     }
 
+    async function setProjectPinned(projectId: string, pinned: boolean) {
+        try {
+            const res = await chatApi.updateProject(projectId, { pinned });
+            if (res.data.status === 'ok') {
+                await getProjects();
+                return true;
+            }
+        } catch (error) {
+            console.error('Failed to pin project:', error);
+        }
+        return false;
+    }
+
     async function deleteProject(projectId: string) {
         try {
             const res = await chatApi.deleteProject(projectId);
@@ -143,6 +156,7 @@ export function useProjects() {
         createProject,
         updateProject,
         deleteProject,
+        setProjectPinned,
         addSessionToProject,
         removeSessionFromProject,
         getProjectSessions
