@@ -119,8 +119,30 @@
         </v-btn>
       </div>
 
+      <div v-if="!isSidebarCollapsed" class="sidebar-tabs" role="tablist">
+        <button
+          v-for="tab in ['chats', 'bots'] as const"
+          :key="tab"
+          type="button"
+          role="tab"
+          class="sidebar-tab"
+          :class="{ active: sidebarTab === tab }"
+          :aria-selected="sidebarTab === tab"
+          @click="sidebarTab = tab"
+        >
+          {{ tm(`botSessions.tabs.${tab}`) }}
+        </button>
+      </div>
+
+      <BotSessionList
+        v-if="!isSidebarCollapsed && sidebarTab === 'bots'"
+        :active-umo="selectedBotSession?.umo"
+        @select="selectBotSession"
+      />
+
       <div
         v-if="!isSidebarCollapsed"
+        v-show="sidebarTab === 'chats'"
         ref="sidebarContent"
         class="sidebar-content"
         @scroll.passive="loadMoreSessions"
@@ -310,6 +332,11 @@
           embedded
         />
       </section>
+
+      <BotSessionView
+        v-else-if="selectedBotSession"
+        :session="selectedBotSession"
+      />
 
       <ProjectView
         v-else-if="selectedProject"
@@ -694,6 +721,10 @@ import ProjectDialog, {
   type ProjectFormData,
 } from "@/components/chat/ProjectDialog.vue";
 import ProjectList, { type Project } from "@/components/chat/ProjectList.vue";
+import BotSessionList, {
+  type BotSession,
+} from "@/components/chat/BotSessionList.vue";
+import BotSessionView from "@/components/chat/BotSessionView.vue";
 import ChatContextMenu from "@/components/chat/ChatContextMenu.vue";
 import SidebarSessionRow from "@/components/chat/SidebarSessionRow.vue";
 import ProjectView from "@/components/chat/ProjectView.vue";
@@ -868,6 +899,18 @@ const sessionsExpanded = ref(chatPreferences().global.sessionsExpanded !== false
 watch(sessionsExpanded, (expanded) => {
   chatPreferences((preferences) => {
     preferences.global.sessionsExpanded = expanded;
+  });
+});
+
+// Which list the sidebar shows: ChatUI's own conversations or the bot's
+// sessions on other platforms.
+const sidebarTab = ref<"chats" | "bots">(
+  chatPreferences().global.sidebarTab === "bots" ? "bots" : "chats",
+);
+
+watch(sidebarTab, (tab) => {
+  chatPreferences((preferences) => {
+    preferences.global.sidebarTab = tab;
   });
 });
 
@@ -1622,6 +1665,29 @@ async function selectProject(projectId: string) {
   await focusChatInput();
 }
 
+// The bot session shown read-only in place of a conversation.
+const selectedBotSession = ref<BotSession | null>(null);
+
+async function selectBotSession(session: BotSession) {
+  showChatWorkspace();
+  selectedProjectId.value = null;
+  currSessionId.value = "";
+  replyTarget.value = null;
+  await router.push(basePath());
+  selectedBotSession.value = session;
+}
+
+// Opening a conversation, a project or the model settings leaves the bot session.
+watch(
+  () =>
+    Boolean(
+      currSessionId.value || selectedProjectId.value || isProviderWorkspace.value,
+    ),
+  (busy) => {
+    if (busy) selectedBotSession.value = null;
+  },
+);
+
 async function loadProjectSessions(projectId = selectedProjectId.value) {
   if (!projectId) {
     projectSessions.value = [];
@@ -1835,7 +1901,7 @@ const sessionMenuItems = computed(() => {
       .filter((project) => project.project_id !== projectId)
       .map((project) => ({
         key: `move:${project.project_id}`,
-        title: `${project.emoji || "📁"} ${project.title}`,
+        title: project.title,
       })),
     ...(projectId ? [{ key: "move:", title: tm("conversation.noProject") }] : []),
   ];
@@ -2982,9 +3048,9 @@ async function stopCurrentSession() {
   display: flex;
   align-items: center;
   padding: 0 10px;
-  color: var(--chat-section-label);
-  font-size: 12px;
-  font-weight: 500;
+  color: rgb(var(--v-theme-on-surface));
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .session-section-toggle {
@@ -3015,6 +3081,34 @@ async function stopCurrentSession() {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.sidebar-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 4px 16px 6px;
+  padding: 3px;
+  border-radius: var(--astrbot-radius-navigation);
+  background: var(--chat-session-active-bg);
+}
+
+.sidebar-tab {
+  flex: 1;
+  min-height: 26px;
+  border-radius: calc(var(--astrbot-radius-navigation) - 2px);
+  color: var(--chat-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.sidebar-tab:hover {
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.sidebar-tab.active {
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
 }
 
 .pinned-section-header {

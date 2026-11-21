@@ -23,6 +23,7 @@ export interface ChatPreferences {
     expandedProjectIds?: string[];
     projectsExpanded?: boolean;
     sessionsExpanded?: boolean;
+    sidebarTab?: "chats" | "bots";
     navigationInSidebar?: boolean;
     draft?: string;
     workbench?: WorkbenchLayout;

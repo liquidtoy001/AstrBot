@@ -230,6 +230,38 @@
     "noProjects": "No projects",
     "confirmDelete": "Are you sure you want to delete project \"{title}\"? Conversations in this project will not be deleted."
   },
+  "botSessions": {
+    "tabs": {
+      "chats": "My chats",
+      "bots": "Bot sessions"
+    },
+    "private": "Private chats",
+    "group": "Group chats",
+    "other": "Other",
+    "loading": "Loading bot sessions",
+    "loadFailed": "Failed to load bot sessions",
+    "empty": "The bot has not chatted on other platforms yet",
+    "readOnly": "Read-only. This is the context the model sees in this session, not the full chat log; you cannot send messages from here.",
+    "conversation": "Conversation (most recently active first)",
+    "noConversation": "This session has no conversation yet",
+    "historyFailed": "Failed to load the conversation"
+  },
+  "botSessions": {
+    "tabs": {
+      "chats": "My chats",
+      "bots": "Bot sessions"
+    },
+    "private": "Private chats",
+    "group": "Group chats",
+    "other": "Other",
+    "loading": "Loading bot sessions",
+    "loadFailed": "Failed to load bot sessions",
+    "empty": "The bot has not chatted on other platforms yet",
+    "readOnly": "Read-only. This is the context the model sees in this session, not the full chat log; you cannot send messages from here.",
+    "conversation": "Conversation (most recently active first)",
+    "noConversation": "This session has no conversation yet",
+    "historyFailed": "Failed to load the conversation"
+  },
   "workspaceFiles": {
     "title": "Workspace Files",
     "open": "Open workspace files",

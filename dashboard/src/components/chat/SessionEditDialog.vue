@@ -114,7 +114,7 @@ const canPickDirectory = ref(false);
 const projectItems = computed(() => [
   { title: tm("conversation.noProject"), value: "" },
   ...props.projects.map((project) => ({
-    title: `${project.emoji || "📁"} ${project.title}`,
+    title: project.title,
     value: project.project_id,
   })),
 ]);

@@ -53,12 +53,6 @@
           @keydown.space.prevent="handleProjectClick(project)"
           @contextmenu.prevent="openProjectMenu($event, project)"
         >
-          <!-- The default folder emoji is left out; one the user chose stays. -->
-          <span
-            v-if="project.emoji && project.emoji !== '📁'"
-            class="project-emoji"
-            >{{ project.emoji }}</span
-          >
           <span class="project-title-wrap">
             <span class="project-title">{{ project.title }}</span>
             <ChevronDown
@@ -367,9 +361,9 @@ async function handleDeleteSession(projectId: string, session: ProjectSession) {
   align-items: center;
   justify-content: space-between;
   padding: 0 10px;
-  color: var(--chat-section-label);
-  font-size: 12px;
-  font-weight: 500;
+  color: rgb(var(--v-theme-on-surface));
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .project-section-toggle {
@@ -461,15 +455,6 @@ async function handleDeleteSession(projectId: string, session: ProjectSession) {
   outline-offset: -1px;
 }
 
-.project-emoji {
-  width: 18px;
-  flex: 0 0 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-}
-
 .project-title-wrap {
   min-width: 0;
   flex: 1;
@@ -484,8 +469,8 @@ async function handleDeleteSession(projectId: string, session: ProjectSession) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .project-chevron,
