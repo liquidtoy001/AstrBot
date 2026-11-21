@@ -129,14 +129,16 @@
 - Conversations inside a project now use the same row style as other sidebar conversations; the tooltip of a project's delete button changed from "Delete this conversation" to "Delete project".
 - 侧边栏分组调整：「对话」分组改名为「最近会话」（只列不在任何项目里的对话）；分组标题加粗；项目行只显示项目名，不再显示文件夹图标或表情；项目内的对话缩进并用小一号的字。
 - Sidebar grouping: the **Conversations** group is renamed **Recent conversations** (it lists the conversations that are in no project); group titles are bold; a project row shows only the project name, without the folder icon or emoji; and conversations inside a project are indented in smaller text.
-- ChatUI 侧边栏顶部新增「我的对话 / 机器人会话」两个标签。「机器人会话」列出机器人在其他平台上的私聊和群聊，点开后只读显示该会话的模型上下文（不是完整聊天记录），不能发送消息。原来的侧边栏内容在「我的对话」标签下。
-- The ChatUI sidebar has two new tabs at the top, **My chats** and **Bot sessions**. **Bot sessions** lists the bot's private and group chats on other platforms; opening one shows that session's model context read-only (not the full chat log), and nothing can be sent from there. The previous sidebar content is under **My chats**.
+- ChatUI 侧边栏顶部新增「聊天对话 / 机器人会话」两个标签。「机器人会话」列出机器人在其他平台上的私聊和群聊，点开后只读显示该会话的模型上下文（不是完整聊天记录），不能发送消息。原来的侧边栏内容在「聊天对话」下。
+- The ChatUI sidebar has two new tabs at the top, **Chats** and **Bot sessions**. **Bot sessions** lists the bot's private and group chats on other platforms; opening one shows that session's model context read-only (not the full chat log), and nothing can be sent from there. The previous sidebar content is under **Chats**.
 - 项目不再有表情：新建和编辑项目的对话框去掉了选择表情的按钮，项目页标题也不再显示表情或文件夹图标。已保存的表情不会被改动，接口仍然接收和返回 `emoji`。
 - Projects no longer have an emoji: the dialog for creating or editing a project lost its emoji button, and the project page title no longer shows an emoji or the folder icon. A stored emoji is left unchanged, and the API still accepts and returns `emoji`.
 - 项目里的对话置顶后也显示在侧边栏顶部的「置顶」分组（名称后带项目名），同时在项目内排到最前。会话列表接口因此会返回已置顶的项目内对话，并带 `project_id`、`project_title`。
 - A pinned conversation inside a project is now also listed in the **Pinned** group at the top of the sidebar, followed by its project name, and still comes first in its project. The session list API therefore returns pinned conversations of projects, with `project_id` and `project_title`.
-- 侧边栏的「我的对话 / 机器人会话」切换由胶囊形改为下划线式的文字标签；左下角「设置」所在的区域加了分隔线和略深的底色，与上方滚动的列表区分开。
-- The **My chats / Bot sessions** switch in the sidebar changed from a pill to underlined text tabs; the area holding **Settings** at the bottom left has a divider and a slightly darker background to set it apart from the scrolling lists above.
+- 侧边栏的「聊天对话 / 机器人会话」切换由胶囊形改为下划线式的文字标签；左下角「设置」所在的区域加了分隔线和略深的底色，与上方滚动的列表区分开。
+- The **Chats / Bot sessions** switch in the sidebar changed from a pill to underlined text tabs; the area holding **Settings** at the bottom left has a divider and a slightly darker background to set it apart from the scrolling lists above.
 - 侧边栏改为同一套中性配色：当前打开的对话、项目和机器人会话用比悬停稍深的灰色底，不再用主题色；左下角「设置」区域只保留一条细分隔线，底色与侧边栏相同；标签下划线改用文字颜色。
 - The sidebar uses one set of neutral colors: the open conversation, project or bot session has a grey fill a step darker than hover instead of the theme color; the **Settings** area at the bottom left keeps only a thin divider on the sidebar's own background; the tab underline uses the text color.
+- 侧边栏再调整：「聊天对话」（原「我的对话」）和「机器人会话」改为带图标的按钮行，与「模型配置」「创建对话」放在一起，顺序为模型配置、机器人会话、聊天对话、创建对话；侧边栏右侧加一条分隔线；「设置」区域变矮；分组标题改回浅灰、不加粗。
+- More sidebar changes: **Chats** (formerly **My chats**) and **Bot sessions** become icon rows next to **Model Configuration** and **New Chat**, in the order Model Configuration, Bot sessions, Chats, New Chat; the sidebar has a divider on its right edge; the **Settings** area is shorter; group titles are light grey and not bold again.
 

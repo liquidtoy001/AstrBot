@@ -151,9 +151,9 @@ Outside the sidebar (messages, the input box and so on) the browser's default ri
 
 ### Viewing bot sessions (read-only)
 
-The top of the sidebar has two new text tabs, **My chats** and **Bot sessions**; the current one is underlined.
+The buttons at the top of the sidebar are, in order, **Model Configuration**, **Bot sessions**, **Chats** and **New Chat**. **Bot sessions** and **Chats** choose what is listed below, and the chosen one is highlighted. With the sidebar collapsed the four buttons show icons only, and choosing **Bot sessions** or **Chats** expands the sidebar.
 
-- **My chats**: the previous content, that is the pinned conversations, projects and recent conversations you created in ChatUI.
+- **Chats**: the previous content, that is the pinned conversations, projects and recent conversations you created in ChatUI.
 - **Bot sessions**: the bot's sessions on other platforms (QQ, Telegram and so on), in three groups, **Private chats**, **Group chats** and **Other**, ordered by latest activity, with the platform ID after each name.
 
 Opening a bot session shows its conversation on the right, for viewing only:
