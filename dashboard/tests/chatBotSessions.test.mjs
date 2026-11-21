@@ -195,3 +195,50 @@ test("opening a bot session leaves the current conversation and project", async 
   assert.equal(chat.replyTarget.value, null);
   assert.equal(chat.selectedBotSession.value, session);
 });
+
+test("the sidebar rows choose the list and leave the model settings", () => {
+  const source = readFileSync(
+    new URL("../src/components/chat/Chat.vue", import.meta.url),
+    "utf8",
+  );
+  const script = source.split('<script setup lang="ts">')[1].split("</script>")[0];
+  const ast = ts.createSourceFile("chat.ts", script, ts.ScriptTarget.Latest, true);
+  const fn = ast.statements.find(
+    (node) => ts.isFunctionDeclaration(node) && node.name?.text === "selectSidebarTab",
+  );
+  const chat = {
+    sidebarTab: { value: "chats" },
+    isSidebarCollapsed: { value: false },
+    customizer: {
+      SET_CHAT_SIDEBAR_COLLAPSED(value) {
+        chat.collapsed = value;
+      },
+    },
+    shown: 0,
+    showChatWorkspace() {
+      this.shown += 1;
+    },
+  };
+  chat.showChatWorkspace = chat.showChatWorkspace.bind(chat);
+  vm.runInNewContext(
+    ts.transpile(fn.getText(ast), { target: ts.ScriptTarget.ES2022 }),
+    chat,
+  );
+  chat.selectSidebarTab("bots");
+  assert.equal(chat.sidebarTab.value, "bots");
+  assert.equal(chat.shown, 1);
+  assert.equal(chat.collapsed, undefined);
+
+  // From the collapsed rail the sidebar opens to show the chosen list.
+  chat.isSidebarCollapsed.value = true;
+  chat.selectSidebarTab("chats");
+  assert.equal(chat.sidebarTab.value, "chats");
+  assert.equal(chat.collapsed, false);
+
+  // The rows sit between the model settings and new chat, bots first.
+  const template = source.split("<template>")[1];
+  const order = ["actions.providerConfig", "v-for=\"tab in sidebarTabs\"", "actions.newChat"]
+    .map((marker) => template.indexOf(marker));
+  assert.ok(order.every((index, i) => index > 0 && (i === 0 || index > order[i - 1])));
+  assert.match(script, /\{ key: "bots", icon: Bot \},\s*\{ key: "chats", icon: MessagesSquare \}/);
+});
