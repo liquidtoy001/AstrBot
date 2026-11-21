@@ -97,3 +97,16 @@ test("expanded covers the chat area only and panels open as cards", () => {
   assert.match(card[1], /border-radius/);
   assert.match(card[1], /margin: 0 var\(--chat-panel-gap\)/);
 });
+
+test("an open panel's top bar button keeps its highlight", () => {
+  const header = parse(
+    read("../src/layouts/full/vertical-header/VerticalHeader.vue"),
+  ).descriptor.styles.map((style) => style.content).join("\n");
+  // The generic header button rule clears backgrounds with !important, so the
+  // active rule has to outrank `.top-header .header-actions .v-btn`.
+  assert.match(header, /\.top-header \.header-actions \.v-btn \{[^}]*background: transparent !important/);
+  assert.match(
+    header,
+    /\.top-header \.header-actions \.v-btn\.workspace-files-trigger--active \{[^}]*background: rgba\(var\(--v-theme-on-surface\), 0\.08\) !important/,
+  );
+});
