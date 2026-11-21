@@ -50,6 +50,8 @@ export interface BotSession {
   umo: string;
   platform: string;
   message_type: string;
+  // The session ID part of the UMO, such as the group or user number.
+  session_id: string;
   display_name: string;
 }
 
@@ -87,7 +89,19 @@ async function load() {
     const response = await sessionApi.activeUmos();
     if (response.data.status !== "ok") throw new Error(response.data.message || "");
     const infos: BotSession[] = response.data.data?.umo_infos || [];
-    sessions.value = infos.filter((info) => info.platform !== "webchat");
+    sessions.value = infos
+      .filter((info) => info.platform !== "webchat")
+      .map((info) => ({
+        ...info,
+        // A session the bot never learned a name for comes back named by its
+        // whole UMO, or "None" when a missing name was stored as text; the
+        // group or user number reads better in a narrow sidebar.
+        display_name:
+          info.display_name && info.display_name !== info.umo &&
+          info.display_name !== "None"
+            ? info.display_name
+            : info.session_id || info.umo,
+      }));
   } catch (error) {
     console.error("Failed to load bot sessions:", error);
     failed.value = true;

@@ -32,17 +32,28 @@
     <div v-else-if="!conversations.length" class="bot-session-state">
       {{ tm("botSessions.noConversation") }}
     </div>
-    <ConversationHistoryPreview
-      v-else
-      :key="conversationId"
-      class="bot-session-history"
-      :messages="messages"
-    />
+    <template v-else>
+      <v-btn
+        v-if="hiddenCount"
+        variant="tonal"
+        size="small"
+        class="bot-session-earlier"
+        @click="shownCount += PAGE_SIZE"
+      >
+        {{ tm("botSessions.showEarlier", { count: hiddenCount }) }}
+      </v-btn>
+      <ConversationHistoryPreview
+        ref="historyPreview"
+        :key="conversationId"
+        class="bot-session-history"
+        :messages="shownMessages"
+      />
+    </template>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { conversationApi } from "@/api/v1";
 import { useModuleI18n } from "@/i18n/composables";
 import ChatLoadError from "@/components/chat/ChatLoadError.vue";
@@ -61,6 +72,15 @@ const conversationId = ref("");
 const messages = ref<unknown[]>([]);
 const loading = ref(false);
 const failed = ref(false);
+// Long contexts (over a thousand messages) take seconds to render at once, so
+// only the latest messages are shown first and earlier ones on request.
+const PAGE_SIZE = 200;
+const shownCount = ref(PAGE_SIZE);
+const shownMessages = computed(() => messages.value.slice(-shownCount.value));
+const hiddenCount = computed(() =>
+  Math.max(0, messages.value.length - shownCount.value),
+);
+const historyPreview = ref<{ $el?: HTMLElement } | null>(null);
 // Drops the result of a request the user has already moved on from.
 let requestId = 0;
 
@@ -123,6 +143,16 @@ async function loadMessages(cid: string) {
     const history = response.data.data?.history || [];
     const parsed = typeof history === "string" ? JSON.parse(history) : history;
     messages.value = Array.isArray(parsed) ? parsed : [];
+    shownCount.value = PAGE_SIZE;
+    // Open at the latest message, as a chat does.
+    loading.value = false;
+    await nextTick();
+    const records = historyPreview.value?.$el?.querySelector?.(".history-records");
+    if (records) {
+      records.scrollTop = records.scrollHeight;
+      // Rendered Markdown and images can still grow the list a little.
+      setTimeout(() => (records.scrollTop = records.scrollHeight), 150);
+    }
   } catch (error) {
     if (current !== requestId) return;
     console.error("Failed to load the bot session history:", error);
@@ -173,6 +203,11 @@ watch(conversationId, loadMessages);
   justify-content: center;
   color: rgba(var(--v-theme-on-surface), 0.62);
   font-size: 14px;
+}
+
+.bot-session-earlier {
+  align-self: center;
+  margin-bottom: 8px;
 }
 
 .bot-session-history {

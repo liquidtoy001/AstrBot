@@ -244,7 +244,8 @@
     "readOnly": "Read-only. This is the context the model sees in this session, not the full chat log; you cannot send messages from here.",
     "conversation": "Conversation (most recently active first)",
     "noConversation": "This session has no conversation yet",
-    "historyFailed": "Failed to load the conversation"
+    "historyFailed": "Failed to load the conversation",
+    "showEarlier": "Show {count} earlier messages"
   },
   "workspaceFiles": {
     "title": "Workspace Files",

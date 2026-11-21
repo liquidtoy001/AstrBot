@@ -244,7 +244,8 @@
     "readOnly": "只读。这里显示的是模型在这个会话里看到的上下文，不是完整的聊天记录；不能从这里发送消息。",
     "conversation": "对话（按最近活动排序）",
     "noConversation": "这个会话还没有对话记录",
-    "historyFailed": "对话记录加载失败"
+    "historyFailed": "对话记录加载失败",
+    "showEarlier": "显示更早的 {count} 条"
   },
   "workspaceFiles": {
     "title": "工作区文件",
