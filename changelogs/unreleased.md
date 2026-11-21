@@ -111,11 +111,22 @@
 
 ### ChatUI conversation workspace and projects / ChatUI 对话工作区与项目
 
-- 编辑会话名称 → 编辑对话：侧边栏对话的铅笔按钮现在打开「编辑对话」，除名称外还可以选择所属项目、填写该对话自己的工作区路径（本地绝对路径，或 `data/workspaces` 下的子目录；留空则沿用项目工作区或默认目录）。对话自己的路径优先于项目的工作区设置，保存在服务器上；API 密钥创建的对话不能设置。
-- Edit Session Name → Edit conversation: the pencil button on a sidebar conversation now opens **Edit conversation**, which also selects the conversation's project and sets its own workspace path (an absolute local path, or a subfolder of `data/workspaces`; empty keeps the project's or the default workspace). The conversation's path takes priority over the project's workspace setting and is stored on the server. Conversations created with an API key cannot set it.
-- 对话可以拖到侧边栏的项目上移入该项目，项目内的对话可以拖到另一个项目，或拖回「对话」列表移出项目。
-- Drag a conversation onto a project in the sidebar to move it there; a conversation inside a project can be dragged to another project, or back to the **Conversations** list to leave its project.
+- 编辑会话名称 → 编辑对话：在侧边栏的对话上点右键选择「编辑对话」（原来是铅笔按钮），除名称外还可以选择所属项目、填写该对话自己的工作区路径（本地绝对路径，或 `data/workspaces` 下的子目录；留空则沿用项目工作区或默认目录）。对话自己的路径优先于项目的工作区设置，保存在服务器上；API 密钥创建的对话不能设置。
+- Edit Session Name → Edit conversation: right-click a sidebar conversation and choose **Edit conversation** (formerly the pencil button), which also selects the conversation's project and sets its own workspace path (an absolute local path, or a subfolder of `data/workspaces`; empty keeps the project's or the default workspace). The conversation's path takes priority over the project's workspace setting and is stored on the server. Conversations created with an API key cannot set it.
+- 对话可以拖到侧边栏的项目上移入该项目，项目内的对话可以拖到另一个项目，或拖回「最近会话」列表移出项目。
+- Drag a conversation onto a project in the sidebar to move it there; a conversation inside a project can be dragged to another project, or back to the **Recent conversations** list to leave its project.
 - `PATCH /api/v1/chat/sessions/{session_id}` 新增 `workspace_path`（空字符串表示清除）；会话列表、会话详情和项目会话列表返回 `workspace_path`。`platform_sessions` 表新增 `workspace_path` 列，启动时自动添加。工作区文件面板在对话有自己的路径时显示该目录。
 - `PATCH /api/v1/chat/sessions/{session_id}` accepts `workspace_path` (an empty string clears it); session lists, session details and project session lists return `workspace_path`. The `platform_sessions` table gains a `workspace_path` column, added automatically on startup. The workspace files panel shows the conversation's own folder when it has one.
 - 项目对话框新增开关「项目内对话共享记忆」（默认关闭）：打开后，项目里每个对话的系统提示词都会带上项目目录里的 `MEMORY.md`（最多 8000 个字符），并提示 Agent 用文件工具把值得长期记住的内容写进去。`chatui_projects` 表新增 `shared_memory` 列，启动时自动添加；项目接口接收 `shared_memory`，并返回 `shared_memory` 和 `memory_path`。
 - The project dialog has a new switch, **Share memory between conversations** (off by default): when on, the system prompt of every conversation in the project includes `MEMORY.md` from the project folder (up to 8000 characters) and asks the Agent to record what is worth keeping with its file tools. The `chatui_projects` table gains a `shared_memory` column, added automatically on startup; the project API accepts `shared_memory` and returns `shared_memory` and `memory_path`.
+- 侧边栏的对话和项目有了右键菜单：对话可以编辑、移动到项目、置顶、删除；项目可以编辑、置顶、删除。悬停按钮由「铅笔、删除」改为「置顶、删除」，编辑入口改为右键菜单（对话还可以双击顶栏标题）。
+- Conversations and projects in the sidebar have a right-click menu: edit, move to project, pin and delete for a conversation; edit, pin and delete for a project. The hover buttons changed from pencil and delete to pin and delete; editing moved to the right-click menu (for a conversation, also a double-click on the header title).
+- 置顶：置顶的对话显示在侧边栏顶部的「置顶」分组，项目内置顶的对话和置顶的项目排在各自列表最前面。置顶保存在服务器上（`platform_sessions.pinned`、`chatui_projects.pinned`，启动时自动添加），`PATCH /api/v1/chat/sessions/{session_id}` 和项目接口接收并返回 `pinned`。
+- Pinning: pinned conversations are listed in a **Pinned** group at the top of the sidebar; pinned conversations inside a project and pinned projects come first in their lists. Pins are stored on the server (`platform_sessions.pinned` and `chatui_projects.pinned`, added automatically on startup); `PATCH /api/v1/chat/sessions/{session_id}` and the project API accept and return `pinned`.
+- 修复：前一条提示还没消失时再出现的提示条（例如连续移动两次对话后的「已移出项目」）不会自动消失。
+- Fixed: a toast shown while the previous one was still visible (for example the second of two quick conversation moves) never disappeared on its own.
+- 侧边栏里项目内的对话与普通对话使用同一种行样式；项目的删除按钮提示由「删除此对话」改为「删除项目」。
+- Conversations inside a project now use the same row style as other sidebar conversations; the tooltip of a project's delete button changed from "Delete this conversation" to "Delete project".
+- 侧边栏分组调整：「对话」分组改名为「最近会话」（只列不在任何项目里的对话）；项目行不再显示默认的文件夹图标（自己选的表情仍然显示），项目名加大加粗，项目内的对话缩进并用小一号的字。
+- Sidebar grouping: the **Conversations** group is renamed **Recent conversations** (it lists the conversations that are in no project); a project row no longer shows the default folder icon (an emoji you chose is still shown), the project name is larger and bold, and conversations inside a project are indented in smaller text.
+

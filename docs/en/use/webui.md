@@ -119,15 +119,35 @@ To return to the model configured in the selected profile, open the model select
 
 ### Conversation project and workspace
 
-The pencil button on a conversation in the sidebar used to rename it only (**Edit Session Name**). It now opens **Edit conversation**, with three fields:
+Right-click a conversation in the sidebar and choose **Edit conversation** (formerly the pencil button **Edit Session Name**, which could only rename). It has three fields:
 
 - **Session Name**: as before.
 - **Project**: choose a project to move the conversation into it, or **No project** to take it out.
 - **Workspace path**: the folder the Agent of this conversation uses to read and write files and run commands. Leave it empty to use the project's workspace; a conversation outside any project uses its own default folder. Enter an absolute local folder path, or the name of a subfolder of the AstrBot workspaces directory (`data/workspaces`), for example the folder another conversation or project already uses, so they share files. The folder must exist and be readable and writable. The value is written like a project's **Custom path** and takes priority over the project's workspace setting.
 
-You can also drag: drop a conversation on a project in the sidebar to move it there. A conversation inside a project can be dropped on another project, or back on the **Conversations** list to take it out of its project. A conversation belongs to at most one project.
+You can also drag: drop a conversation on a project in the sidebar to move it there. A conversation inside a project can be dropped on another project, or back on the **Recent conversations** list to take it out of its project. A conversation belongs to at most one project.
 
 The workspace path is stored on the server, so other browsers, scheduled tasks and sub-agents use the same folder. Conversations created with an API key cannot set a workspace path. Changing the path does not move the files in the previous folder.
+
+### Sidebar right-click menus and pinning
+
+Right-clicking a conversation or a project in the sidebar opens ChatUI's own menu instead of the browser's default one:
+
+- Conversation: **Edit conversation**, **Move to project** (choose the target in the submenu, or **No project** to take it out), **Pin** / **Unpin**, **Delete this conversation**.
+- Project: **Edit Project**, **Pin** / **Unpin**, **Delete project**.
+
+The two buttons shown on hover are now **Pin** and delete. The former pencil button (edit) moved into the right-click menu:
+
+| Before | Now |
+| --- | --- |
+| Pencil button on a conversation | Right-click the conversation → **Edit conversation**, or double-click the conversation title in the header |
+| Pencil button on a project | Right-click the project → **Edit Project** |
+
+Pinned conversations are listed in a **Pinned** group at the top of the sidebar. A pinned conversation inside a project comes first in that project and carries a pin mark next to its title; pinned projects come first in the project list. Pins are stored on the server, so they apply in every browser and on every device, and pinning does not change a conversation's last-activity time.
+
+Sidebar groups: **Pinned** at the top (only when something is pinned), then **Projects**, then **Recent conversations** (formerly **Conversations**; it lists the conversations that are in no project). A project name is shown in larger bold text and the conversations inside it are indented in smaller text; a project row no longer shows the default folder icon, while an emoji you chose is still shown.
+
+Outside the sidebar (messages, the input box and so on) the browser's default right-click menu still applies, for copying, pasting and similar actions.
 
 ### Shared memory in a project
 
