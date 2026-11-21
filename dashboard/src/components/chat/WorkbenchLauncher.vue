@@ -1,30 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted } from "vue";
 import { ArrowUpRight, PanelsTopLeft } from "@lucide/vue";
-import { fetchWithAuth } from "@/api/http";
 import { useI18n, useModuleI18n } from "@/i18n/composables";
 import { resolvePluginViewText } from "@/utils/pluginI18n";
 import type { WorkbenchView } from "@/utils/chatViews";
+import { useWorkbenchViews } from "@/composables/useWorkbenchViews";
 
 defineEmits<{ open: [view: WorkbenchView] }>();
 const { locale } = useI18n();
 const { tm } = useModuleI18n("features/chat");
-const views = ref<WorkbenchView[]>([]);
-const loading = ref(true);
-const failed = ref(false);
-async function load() {
-  loading.value = true;
-  failed.value = false;
-  try {
-    const response = await fetchWithAuth("/api/v1/chat/workbench/views");
-    if (!response.ok) throw new Error("Workbench catalog unavailable");
-    views.value = (await response.json()).data;
-  } catch {
-    failed.value = true;
-  } finally {
-    loading.value = false;
-  }
-}
+const { views, loading, failed, load } = useWorkbenchViews();
 onMounted(load);
 </script>
 

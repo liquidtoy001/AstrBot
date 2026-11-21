@@ -85,7 +85,10 @@
             </div>
           </div>
           <div class="workbench-controls">
+            <!-- Hidden when no plugin offers a view to add; a failed load keeps
+                 it so the New workbench tab can retry. -->
             <button
+              v-if="catalogFailed || catalogViews.length"
               type="button"
               :title="tm('workbench.newTab')"
               :aria-label="tm('workbench.newTab')"
@@ -165,6 +168,7 @@ import { useI18n, useModuleI18n } from "@/i18n/composables";
 import { resolvePluginViewText } from "@/utils/pluginI18n";
 import type { WorkbenchTab, WorkbenchView } from "@/utils/chatViews";
 import WorkbenchLauncher from "./WorkbenchLauncher.vue";
+import { useWorkbenchViews } from "@/composables/useWorkbenchViews";
 import PluginViewFrame from "@/components/plugins/PluginViewFrame.vue";
 import PluginViewCard from "./message_list_comps/PluginViewCard.vue";
 
@@ -247,6 +251,20 @@ function resizeByKeyboard(delta: number) {
   );
 }
 const { smAndDown } = useDisplay();
+// Refresh the catalog whenever the workbench opens, so a plugin enabled
+// meanwhile brings the + button back.
+const {
+  views: catalogViews,
+  failed: catalogFailed,
+  load: loadCatalog,
+} = useWorkbenchViews();
+watch(
+  () => props.open,
+  (open) => {
+    if (open) loadCatalog();
+  },
+  { immediate: true },
+);
 const { tm } = useModuleI18n("features/chat");
 watch(() => props.activeId, async (id) => {
   await nextTick();

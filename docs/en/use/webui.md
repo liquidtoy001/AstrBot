@@ -335,7 +335,7 @@ Modify the `password` in the `dashboard` configuration in the data/cmd_config.js
 
 ## ChatUI workbench
 
-The workbench button at the right of the ChatUI header opens a reading and visualization area. Click **+** in its tab bar to open **New workbench**, then choose a registered plugin view. A context-usage view can follow the active session; tools and plugin messages can also open file previews directly.
+The workbench button at the right of the ChatUI header opens a reading and visualization area. Click **+** in its tab bar to open **New workbench**, then choose a registered plugin view (**+** is hidden while no plugin offers a view; it stays if the list fails to load, so **New workbench** can retry). A context-usage view can follow the active session; tools and plugin messages can also open file previews directly.
 
 The workbench opens as a card on the right below the top bar, with its tabs, **+**, expand and close (X) buttons inside the card; the top bar keeps the same icons whether it is open or not, and the workbench button stays highlighted while it is open (select it again to close). Drag the left divider to resize. Expand to fill the chat area; the left sidebar, the top bar and the window buttons stay usable, and the expand/restore button stays in place. Old to new: workbench tabs in the top bar → the top of the workbench card; the hide button (panel icon) → the X at the card's upper right, or the workbench button again. All tabs, including resident plugin views and New workbench, belong to their chat session. Switching sessions restores its tabs, selected view, and open/hidden state. This is a new entry point and does not replace standalone plugin pages in the extensions sidebar.
 

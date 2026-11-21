@@ -110,3 +110,65 @@ test("an open panel's top bar button keeps its highlight", () => {
     /\.top-header \.header-actions \.v-btn\.workspace-files-trigger--active \{[^}]*background: rgba\(var\(--v-theme-on-surface\), 0\.08\) !important/,
   );
 });
+
+async function loadCatalogModule(fetchWithAuth) {
+  const { default: ts } = await import("typescript");
+  const vm = await import("node:vm");
+  const { ref } = await import("vue");
+  const source = read("../src/composables/useWorkbenchViews.ts").replace(
+    /^import .*$/gm,
+    "",
+  );
+  const context = vm.createContext({ exports: {}, ref, fetchWithAuth });
+  vm.runInContext(
+    ts.transpile(source, {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+    }),
+    context,
+  );
+  return context.exports.useWorkbenchViews;
+}
+
+test("the launcher and the workbench share one view catalog request", async () => {
+  let calls = 0;
+  let respond;
+  const useWorkbenchViews = await loadCatalogModule(() => {
+    calls += 1;
+    return new Promise((resolve) => (respond = resolve));
+  });
+  const workbenchSide = useWorkbenchViews();
+  const launcherSide = useWorkbenchViews();
+  const both = Promise.all([workbenchSide.load(), launcherSide.load()]);
+  assert.equal(calls, 1, "a load in flight is shared");
+  respond({ ok: true, json: async () => ({ data: [{ name: "usage" }] }) });
+  await both;
+  assert.equal(launcherSide.views.value.length, 1);
+  assert.equal(workbenchSide.failed.value, false);
+  assert.doesNotMatch(
+    read("../src/components/chat/WorkbenchLauncher.vue"),
+    /fetchWithAuth/,
+    "the launcher reads the shared catalog",
+  );
+
+  const failing = await loadCatalogModule(async () => ({ ok: false }));
+  const catalog = failing();
+  await catalog.load();
+  assert.equal(catalog.failed.value, true);
+});
+
+test("the + button shows only when there is a view to add or the list failed", () => {
+  const [button] = findElements(
+    workbench.template.ast,
+    (node) =>
+      node.tag === "button" &&
+      attr(node, "title")?.exp?.content === "tm('workbench.newTab')",
+  );
+  const shown = new Function(
+    "scope",
+    `with (scope) { return Boolean(${attr(button, "if").exp.content}) }`,
+  );
+  assert.equal(shown({ catalogViews: [], catalogFailed: false }), false);
+  assert.equal(shown({ catalogViews: [{}], catalogFailed: false }), true);
+  assert.equal(shown({ catalogViews: [], catalogFailed: true }), true, "keeps retry reachable");
+});
