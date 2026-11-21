@@ -51,6 +51,8 @@
 - Your own messages get a copy button, and the buttons under a message show a name and description on hover.
 - 回复进行中时，头像中的 AstrBot 标志播放动画（小星环绕、金蓝交替）；静止时仍是原来的标志，系统开启减少动态效果时不播放。
 - While a reply is in progress the AstrBot mark in its avatar is animated (the small star orbits while gold and blue take turns); at rest it is the plain mark, and it stays still when the system asks for reduced motion.
+- 桌面端 ChatUI 去掉顶栏右上角的「选项」菜单：语言和主题本来就在左下角「设置 → 通用」里，「检查更新」「修改账户」「退出登录」也移到那里，有新版本时「设置」按钮上显示提示圆点。其他页面和手机端的顶栏菜单不变。
+- Desktop ChatUI drops the **Options** menu in the upper-right corner: language and theme were already under **Settings → General** (bottom left), and **Check for updates**, **Change account** and **Log out** move there too; the **Settings** button shows a dot when an update is available. Other pages and phones keep the header menu.
 
 ### Tool approval and permission modes / 工具审批与权限档位
 

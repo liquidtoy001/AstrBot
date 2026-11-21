@@ -6,6 +6,13 @@ import { loadSource, mountSetup } from "./helpers/vueHarness.mjs";
 
 function mountDialog({ routing = {}, configId = "default" } = {}) {
   const calls = [];
+  const chatHeader = reactive({
+    updateAvailable: false,
+    headerDialog: "",
+    OPEN_HEADER_DIALOG(dialog) {
+      this.headerDialog = dialog;
+    },
+  });
   const ok = (data) => ({ status: 200, data: { status: "ok", data } });
   const component = loadSource(
     new URL("../src/components/chat/ChatSettingsDialog.vue", import.meta.url),
@@ -47,6 +54,8 @@ function mountDialog({ routing = {}, configId = "default" } = {}) {
         useLanguageSwitcher: () => ({ locale: "en-US", languageOptions: [], switchLanguage() {} }),
       },
       "@/stores/customizer": { useCustomizerStore: () => ({}) },
+      "@/stores/chatHeader": { useChatHeaderStore: () => chatHeader },
+      "@/stores/auth": { useAuthStore: () => ({ logout: () => calls.push(["logout"]) }) },
     },
   ).default;
   const props = reactive({
@@ -58,10 +67,21 @@ function mountDialog({ routing = {}, configId = "default" } = {}) {
     transportMode: "sse",
   });
   const mounted = mountSetup({
-    setup: (_, ctx) => component.setup(props, { ...ctx, emit() {} }),
+    setup: (_, ctx) =>
+      component.setup(props, { ...ctx, emit: (...args) => calls.push(["emit", ...args]) }),
   });
-  return { state: mounted.state, calls, stop: mounted.stop };
+  return { state: mounted.state, calls, chatHeader, stop: mounted.stop };
 }
+
+test("update and account close the settings and ask the app header for its dialog", () => {
+  for (const dialog of ["update", "account"]) {
+    const mounted = mountDialog();
+    mounted.state.openHeaderDialog(dialog);
+    assert.deepEqual(mounted.calls, [["emit", "update:modelValue", false]]);
+    assert.equal(mounted.chatHeader.headerDialog, dialog);
+    mounted.stop();
+  }
+});
 
 for (const [label, routing, configId, shared] of [
   ["the default profile", {}, "default", true],

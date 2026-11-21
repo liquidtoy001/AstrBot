@@ -425,6 +425,24 @@ function handleUpdateClick() {
   updateStatusDialog.value = true;
 }
 
+// ChatUI has no options menu here; its settings dialog asks for these dialogs.
+watch(
+  hasAvailableUpdate,
+  (available) => {
+    chatHeader.updateAvailable = available;
+  },
+  { immediate: true },
+);
+watch(
+  () => chatHeader.headerDialog,
+  (requested) => {
+    if (!requested) return;
+    chatHeader.headerDialog = "";
+    if (requested === "update") handleUpdateClick();
+    else dialog.value = true;
+  },
+);
+
 // 检测是否为预发布版本
 const isPreRelease = (version: string) => {
   const preReleaseKeywords = ["alpha", "beta", "rc", "pre", "preview", "dev"];
@@ -1190,7 +1208,14 @@ onMounted(async () => {
       </v-btn>
 
       <!-- 功能菜单 -->
-      <StyledMenu v-model="mainMenuOpen" offset="12" location="bottom end">
+      <!-- Desktop ChatUI offers these items in its settings dialog instead;
+           phones keep the menu because it also holds the mode switch. -->
+      <StyledMenu
+        v-if="!isChatPath || $vuetify.display.smAndDown"
+        v-model="mainMenuOpen"
+        offset="12"
+        location="bottom end"
+      >
         <template v-slot:activator="{ props: activatorProps }">
           <v-btn
             v-bind="activatorProps"

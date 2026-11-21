@@ -233,10 +233,18 @@
           :aria-label="t('core.common.settings')"
           @click="settingsOpen = true"
         >
-          <Settings
-            :size="20"
-            :class="['sidebar-action-icon', { 'mr-2': !isSidebarCollapsed }]"
-          />
+          <!-- The update dot the header's options menu used to carry. -->
+          <v-badge
+            :model-value="chatHeader.updateAvailable && !chatboxMode"
+            color="primary"
+            dot
+            floating
+          >
+            <Settings
+              :size="20"
+              :class="['sidebar-action-icon', { 'mr-2': !isSidebarCollapsed }]"
+            />
+          </v-badge>
           <span v-if="!isSidebarCollapsed">{{
             t("core.common.settings")
           }}</span>
@@ -254,6 +262,7 @@
       :stt-providers="sttProviders"
       @configure-stt="openProviderWorkspace('speech_to_text')"
       :session-id="currSessionId || null"
+      :account-actions="!chatboxMode"
     />
 
     <main

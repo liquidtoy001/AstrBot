@@ -8,6 +8,10 @@ export const useChatHeaderStore = defineStore("chatHeader", {
     workspaceFilesOpen: false,
     workbenchWidth: null as number | null,
     sessionPanelOpen: false,
+    // The ChatUI settings dialog opens the header's update and account
+    // dialogs through this request; the header shows them and clears it.
+    updateAvailable: false,
+    headerDialog: "" as "" | "update" | "account",
   }),
 
   actions: {
@@ -34,6 +38,9 @@ export const useChatHeaderStore = defineStore("chatHeader", {
     },
     SET_SESSION_PANEL_OPEN(open: boolean) {
       this.sessionPanelOpen = Boolean(open);
+    },
+    OPEN_HEADER_DIALOG(dialog: "update" | "account") {
+      this.headerDialog = dialog;
     },
     CLEAR_CONTEXT() {
       this.title = "";
