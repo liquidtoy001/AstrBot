@@ -145,7 +145,7 @@ The two buttons shown on hover are now **Pin** and delete. The former pencil but
 
 Pinned conversations are listed in a **Pinned** group at the top of the sidebar. A pinned conversation inside a project comes first in that project and carries a pin mark next to its title; pinned projects come first in the project list. Pins are stored on the server, so they apply in every browser and on every device, and pinning does not change a conversation's last-activity time.
 
-Sidebar groups: **Pinned** at the top (only when something is pinned), then **Projects**, then **Recent conversations** (formerly **Conversations**; it lists the conversations that are in no project). The three group titles are shown in bold; a project row shows only the project name, without the folder icon or emoji; the conversations inside a project are indented in smaller text.
+Sidebar groups: **Pinned** at the top (only when something is pinned), then **Projects**, then **Recent conversations** (formerly **Conversations**; it lists the conversations that are in no project). The three group titles are shown in bold; a project is shown by its name only: the sidebar and the project page title no longer show the folder icon or an emoji, and the dialog for creating or editing a project no longer has the emoji button; the conversations inside a project are indented in smaller text.
 
 Outside the sidebar (messages, the input box and so on) the browser's default right-click menu still applies, for copying, pasting and similar actions.
 

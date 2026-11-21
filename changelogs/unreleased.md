@@ -131,4 +131,6 @@
 - Sidebar grouping: the **Conversations** group is renamed **Recent conversations** (it lists the conversations that are in no project); group titles are bold; a project row shows only the project name, without the folder icon or emoji; and conversations inside a project are indented in smaller text.
 - ChatUI 侧边栏顶部新增「我的对话 / 机器人会话」两个标签。「机器人会话」列出机器人在其他平台上的私聊和群聊，点开后只读显示该会话的模型上下文（不是完整聊天记录），不能发送消息。原来的侧边栏内容在「我的对话」标签下。
 - The ChatUI sidebar has two new tabs at the top, **My chats** and **Bot sessions**. **Bot sessions** lists the bot's private and group chats on other platforms; opening one shows that session's model context read-only (not the full chat log), and nothing can be sent from there. The previous sidebar content is under **My chats**.
+- 项目不再有表情：新建和编辑项目的对话框去掉了选择表情的按钮，项目页标题也不再显示表情或文件夹图标。已保存的表情不会被改动，接口仍然接收和返回 `emoji`。
+- Projects no longer have an emoji: the dialog for creating or editing a project lost its emoji button, and the project page title no longer shows an emoji or the folder icon. A stored emoji is left unchanged, and the API still accepts and returns `emoji`.
 
