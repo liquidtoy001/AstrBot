@@ -1429,6 +1429,24 @@ paths:
         "409":
           description: Undo refused
 
+  /api/v1/chat/sessions/{session_id}/compact:
+    post:
+      tags: [Chat]
+      summary: Compact a ChatUI conversation now
+      operationId: compactChatSession
+      x-astrbot-scope: chat
+      description: |
+        Summarizes the earlier model context of the conversation, keeping the
+        latest complete round verbatim. Refused while a reply or background
+        run of the conversation is active. Nothing is written unless the
+        context gets smaller, and the write is rejected if the conversation
+        changed in the meantime. The chat display is unchanged.
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          $ref: "#/components/responses/Ok"
+
   /api/v1/chat/runs/{run_id}/stream:
     get:
       tags: [Chat]
@@ -6411,6 +6429,8 @@ components:
           $ref: "#/components/schemas/ChatReasoningEffort"
         permission_mode:
           $ref: "#/components/schemas/ChatPermissionMode"
+        compact_threshold:
+          $ref: "#/components/schemas/ChatCompactThreshold"
         fast_mode:
           $ref: "#/components/schemas/ChatFastMode"
         enable_streaming:
@@ -6478,6 +6498,11 @@ components:
       enum: [low, medium, high]
       description: ChatUI per-conversation thinking level for this request. Mapped to each provider's own setting; omit to use the provider configuration.
 
+    ChatCompactThreshold:
+      type: integer
+      minimum: 1
+      description: ChatUI per-conversation auto-compaction threshold in tokens for this request. The runtime raises it to at least max(8192, 20% of the context window) and caps it at the window; omit to compress at the configured point.
+
     ChatFastMode:
       type: boolean
       description: ChatUI per-conversation fast mode for this request (faster output at a higher price). Applied only when the selected provider supports it (see `supports_fast_mode` in the provider list); otherwise ignored.
@@ -6496,6 +6521,8 @@ components:
           $ref: "#/components/schemas/ChatReasoningEffort"
         permission_mode:
           $ref: "#/components/schemas/ChatPermissionMode"
+        compact_threshold:
+          $ref: "#/components/schemas/ChatCompactThreshold"
         fast_mode:
           $ref: "#/components/schemas/ChatFastMode"
         enable_streaming:
@@ -6542,6 +6569,8 @@ components:
           $ref: "#/components/schemas/ChatReasoningEffort"
         permission_mode:
           $ref: "#/components/schemas/ChatPermissionMode"
+        compact_threshold:
+          $ref: "#/components/schemas/ChatCompactThreshold"
         fast_mode:
           $ref: "#/components/schemas/ChatFastMode"
         enable_streaming:

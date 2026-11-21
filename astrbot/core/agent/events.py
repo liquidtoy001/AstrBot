@@ -66,6 +66,8 @@ class ContextUsage(OutputValue):
 
     tokens: int | None = Field(default=None, ge=0)
     limit: int | None = Field(default=None, ge=0)
+    breakdown: dict[str, int] | None = None
+    compactions: int | None = Field(default=None, ge=0)
 
 
 class TurnUsage(OutputValue):

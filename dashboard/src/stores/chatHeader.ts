@@ -7,6 +7,7 @@ export const useChatHeaderStore = defineStore("chatHeader", {
     projectId: "",
     workspaceFilesOpen: false,
     workbenchWidth: null as number | null,
+    sessionPanelOpen: false,
   }),
 
   actions: {
@@ -31,11 +32,15 @@ export const useChatHeaderStore = defineStore("chatHeader", {
     SET_WORKSPACE_FILES_OPEN(open: boolean) {
       this.workspaceFilesOpen = Boolean(open && this.projectId);
     },
+    SET_SESSION_PANEL_OPEN(open: boolean) {
+      this.sessionPanelOpen = Boolean(open);
+    },
     CLEAR_CONTEXT() {
       this.title = "";
       this.subtitle = "";
       this.projectId = "";
       this.workspaceFilesOpen = false;
+      this.sessionPanelOpen = false;
     },
   },
 });

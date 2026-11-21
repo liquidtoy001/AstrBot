@@ -161,6 +161,7 @@ class ChatOptions(OpenModel):
         None
     )
     fast_mode: bool | None = None
+    compact_threshold: int | None = Field(default=None, ge=1)
 
 
 class ChatPermissionModeRequest(OpenModel):

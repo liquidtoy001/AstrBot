@@ -4,6 +4,8 @@ import asyncio
 from contextlib import aclosing
 from typing import TYPE_CHECKING
 
+from astrbot import logger
+from astrbot.core.agent.context.token_counter import estimate_context_breakdown
 from astrbot.core.agent.events import (
     ContextUsage,
     ExecutionMetrics,
@@ -28,6 +30,10 @@ if TYPE_CHECKING:
     from astrbot.core.provider.entities import ProviderRequest
     from astrbot.core.provider.provider import Provider
     from astrbot.core.star.context import Context
+
+
+MIN_COMPACT_THRESHOLD = 8192
+"""Lowest per-conversation compaction threshold accepted from ChatUI, in tokens."""
 
 
 async def create_native_runner(
@@ -68,6 +74,23 @@ async def create_native_runner(
             if model_info
             else config.fallback_max_context_tokens
         )
+    # ChatUI may compress a conversation earlier than the window allows; never
+    # later. Sub-agents keep their own default.
+    compress_trigger_tokens = 0
+    threshold = agent_context.event.get_extra("compact_threshold")
+    if (
+        isinstance(threshold, int)
+        and not isinstance(threshold, bool)
+        and threshold > 0
+        and not getattr(agent_context, "is_subagent", False)
+    ):
+        # A floor keeps a tiny threshold from compacting on every turn: the
+        # system prompt and tool definitions alone can exceed it, and they
+        # cannot be compressed.
+        floor = max(MIN_COMPACT_THRESHOLD, max_context_tokens // 5)
+        compress_trigger_tokens = max(threshold, floor)
+        if max_context_tokens > 0:
+            compress_trigger_tokens = min(compress_trigger_tokens, max_context_tokens)
     runner = AgentRunner()
     read_tool = (
         request.func_tool.get_tool("astrbot_file_read_tool")
@@ -92,6 +115,7 @@ async def create_native_runner(
         conversation_event_sink=writer.consume if writer else None,
         streaming=config.streaming_response,
         max_context_tokens=max_context_tokens,
+        compress_trigger_tokens=compress_trigger_tokens,
         llm_compress_instruction=config.llm_compress_instruction,
         llm_compress_keep_recent_ratio=config.llm_compress_keep_recent_ratio,
         llm_compress_provider=compression_provider,
@@ -163,6 +187,17 @@ async def execute_native_loop(
                         if report.cached_input_tokens is not None:
                             cached_tokens += report.cached_input_tokens
                             has_cached = True
+                    breakdown = None
+                    if event.get_platform_name() == "webchat":
+                        # ChatUI's session panel shows what the context is made
+                        # of; keep it with this request's usage snapshot.
+                        try:
+                            breakdown = estimate_context_breakdown(
+                                runner.run_context.messages,
+                                runner._func_tool_for_provider(),
+                            )
+                        except Exception as exc:
+                            logger.debug(f"Context breakdown estimate failed: {exc}")
                     usage = TurnUsage(
                         source="requests",
                         complete=complete,
@@ -177,6 +212,8 @@ async def execute_native_loop(
                             if runner.request_context_manager_config.max_context_tokens
                             > 0
                             else None,
+                            breakdown=breakdown,
+                            compactions=runner.compaction_count,
                         ),
                     )
                 turn.emit(payload)

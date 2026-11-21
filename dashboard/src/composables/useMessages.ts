@@ -6,6 +6,7 @@ import {
 } from "@/composables/useActionRowChoices";
 import { useI18n } from "@/i18n/composables";
 import { chatApi, fileApi } from "@/api/v1";
+import { TOOL_KINDS } from "@/utils/toolKinds";
 import { fetchWithAuth } from "@/api/http";
 import type { Session } from "@/composables/useSessions";
 
@@ -1604,30 +1605,75 @@ export function reasoningActivityCounts(
     : normalizeMessageParts(parts, fallbackReasoning);
   let thinkCount = 0;
   let toolCount = 0;
+  let commandCount = 0;
+  let subagentCount = 0;
+  let subagentControlCalls = 0;
+  let fileEditCalls = 0;
+  const editedFiles = new Set<string>();
 
   for (const part of normalizedParts) {
     if (part.type === "think" && String(part.think || "").trim()) {
       thinkCount += 1;
     }
     if (part.type === "tool_call" && Array.isArray(part.tool_calls)) {
-      toolCount += part.tool_calls.length;
+      for (const call of part.tool_calls) {
+        toolCount += 1;
+        const kind = TOOL_KINDS[String(call.name || "")]?.kind;
+        if (kind === "command" || kind === "code") commandCount += 1;
+        else if (kind === "spawn") subagentCount += 1;
+        else if (kind === "agent") subagentControlCalls += 1;
+        else if (kind === "edit") {
+          fileEditCalls += 1;
+          const args = (call.args || {}) as Record<string, unknown>;
+          editedFiles.add(String(args.path || args.file_path || call.id));
+        }
+      }
     }
   }
 
-  return { thinkCount, toolCount };
+  return {
+    thinkCount,
+    toolCount,
+    commandCount,
+    subagentCount,
+    subagentControlCalls,
+    fileCount: editedFiles.size,
+    fileEditCalls,
+  };
 }
 
 export function reasoningActivityTitle(
   counts: ReturnType<typeof reasoningActivityCounts>,
   tm: (key: string, params?: Record<string, string | number>) => string,
 ) {
+  const otherTools =
+    counts.toolCount -
+    counts.commandCount -
+    counts.subagentCount -
+    counts.subagentControlCalls -
+    counts.fileEditCalls;
   return (
     [
       counts.thinkCount > 0
         ? tm("reasoning.thinkSummary", { count: counts.thinkCount })
         : "",
-      counts.toolCount > 0
-        ? tm("reasoning.toolSummary", { count: counts.toolCount })
+      counts.commandCount > 0
+        ? tm("reasoning.commandSummary", { count: counts.commandCount })
+        : "",
+      counts.fileCount > 0
+        ? tm("reasoning.fileSummary", { count: counts.fileCount })
+        : "",
+      counts.subagentCount > 0
+        ? tm("reasoning.subagentSummary", { count: counts.subagentCount })
+        : "",
+      // Every remaining call; file edits count per call so the sum is exact.
+      otherTools > 0
+        ? tm(
+            otherTools === counts.toolCount
+              ? "reasoning.toolSummary"
+              : "reasoning.otherToolSummary",
+            { count: otherTools },
+          )
         : "",
     ]
       .filter(Boolean)

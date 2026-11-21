@@ -253,6 +253,7 @@
       v-model:stt-provider="selectedSttProvider"
       :stt-providers="sttProviders"
       @configure-stt="openProviderWorkspace('speech_to_text')"
+      :session-id="currSessionId || null"
     />
 
     <main
@@ -262,6 +263,7 @@
         'has-side-panel':
           workbenchVisible ||
           threadPanelOpen ||
+          sessionPanelOpen ||
           refsSidebarOpen ||
           chatHeader.workspaceFilesOpen,
       }"
@@ -624,6 +626,15 @@
       @open-page="openWorkbenchPage"
       @close="workbench.open = false"
     />
+    <SessionPanel
+      v-model="sessionPanelOpen"
+      :messages="activeMessages"
+      :used="latestContextTokens"
+      :limit="contextLimit(currentTokenProvider, currentTokenMetadata)"
+      :model="[currentProviderId, currentModelName].filter(Boolean).join(' / ')"
+      :session-id="currSessionId || null"
+      :running="Boolean(currSessionId && isSessionRunning(currSessionId))"
+    />
     <RefsSidebar v-model="refsSidebarOpen" :refs="selectedRefs" />
     <WorkspaceFilesPanel
       :model-value="chatHeader.workspaceFilesOpen"
@@ -689,6 +700,7 @@ import ChatMessageList from "@/components/chat/ChatMessageList.vue";
 import ChatUILogo from "@/components/chat/ChatUILogo.vue";
 import type { RegenerateModelSelection } from "@/components/chat/RegenerateMenu.vue";
 import ChatLoadError from "@/components/chat/ChatLoadError.vue";
+import SessionPanel from "@/components/chat/SessionPanel.vue";
 import ThreadPanel from "@/components/chat/ThreadPanel.vue";
 import ChatWorkbench from "@/components/chat/ChatWorkbench.vue";
 import { workbenchChatKey } from "@/utils/chatViews";
@@ -865,6 +877,11 @@ let autoScrollFrame: number | null = null;
 const replyTarget = ref<ChatRecord | null>(null);
 const threadPanelOpen = ref(false);
 const activeThread = ref<ChatThread | null>(null);
+// The single right panel (session overview), toggled from the header.
+const sessionPanelOpen = computed({
+  get: () => chatHeader.sessionPanelOpen,
+  set: (open: boolean) => chatHeader.SET_SESSION_PANEL_OPEN(open),
+});
 const deletingThread = ref(false);
 const refsSidebarOpen = ref(false);
 const selectedRefs = ref<Record<string, unknown> | null>(null);
@@ -942,6 +959,13 @@ function toggleChatSidebar() {
   }
   customizer.SET_CHAT_SIDEBAR_COLLAPSED(!customizer.chatSidebarCollapsed);
 }
+
+watch(sessionPanelOpen, (open) => {
+  if (!open) return;
+  chatHeader.SET_WORKSPACE_FILES_OPEN(false);
+  threadPanelOpen.value = false;
+  refsSidebarOpen.value = false;
+});
 
 const {
   loadingMessages,
@@ -1079,7 +1103,7 @@ const workbenchVisible = computed(() =>
 watch(workbenchVisible, (open) => {
   if (open) closeSecondaryPanels();
 });
-watch([threadPanelOpen, refsSidebarOpen, () => chatHeader.workspaceFilesOpen], (panels) => {
+watch([threadPanelOpen, refsSidebarOpen, sessionPanelOpen, () => chatHeader.workspaceFilesOpen], (panels) => {
   if (panels.some(Boolean) && workbench.value) workbench.value.open = false;
 });
 const chatHeaderTitle = computed(
@@ -1283,6 +1307,7 @@ watch(
     threadSelection.visible = false;
     threadPanelOpen.value = false;
     activeThread.value = null;
+    sessionPanelOpen.value = false;
     refsSidebarOpen.value = false;
     selectedRefs.value = null;
   },
@@ -1454,6 +1479,7 @@ function closeSecondaryPanels() {
   threadSelection.visible = false;
   threadPanelOpen.value = false;
   activeThread.value = null;
+  sessionPanelOpen.value = false;
   refsSidebarOpen.value = false;
   selectedRefs.value = null;
   chatHeader.SET_WORKSPACE_FILES_OPEN(false);
@@ -2085,6 +2111,7 @@ async function createThreadFromSelection() {
 
 function openThreadPanel(thread: ChatThread) {
   chatHeader.SET_WORKSPACE_FILES_OPEN(false);
+  sessionPanelOpen.value = false;
   refsSidebarOpen.value = false;
   activeThread.value = thread;
   threadPanelOpen.value = true;
@@ -2094,6 +2121,7 @@ function openRefsSidebar(refs: unknown) {
   chatHeader.SET_WORKSPACE_FILES_OPEN(false);
   threadPanelOpen.value = false;
   activeThread.value = null;
+  sessionPanelOpen.value = false;
   selectedRefs.value =
     refs && typeof refs === "object" ? (refs as Record<string, unknown>) : null;
   refsSidebarOpen.value = true;

@@ -8,7 +8,15 @@
         aria-hidden="true"
       />
       <span class="tool-call-title">
-        {{ tm("actions.toolCallUsed", { name: displayToolName }) }}
+        <template v-if="toolSummary">
+          {{ toolSummary.verb }}
+          <code v-if="toolSummary.target" class="tool-call-target">{{
+            toolSummary.target
+          }}</code>
+        </template>
+        <template v-else>
+          {{ tm("actions.toolCallUsed", { name: displayToolName }) }}
+        </template>
         <span v-if="fileChange" class="file-change-stat">
           <span class="stat-added">+{{ fileChange.added_count ?? 0 }}</span>
           <span class="stat-removed">-{{ fileChange.removed_count ?? 0 }}</span>
@@ -114,6 +122,7 @@ import {
 import { useModuleI18n } from "@/i18n/composables";
 import { chatApi } from "@/api/v1";
 import { askForConfirmation, useConfirmDialog } from "@/utils/confirmDialog";
+import { TOOL_KINDS } from "@/utils/toolKinds";
 
 const props = defineProps({
   toolCall: {
@@ -222,6 +231,32 @@ const elapsedTime = computed(() => {
 });
 
 const displayToolName = computed(() => props.toolCall.name || "tool");
+
+// Command-style title for well-known tools: what ran or which file changed.
+const toolSummary = computed(() => {
+  const entry = TOOL_KINDS[String(props.toolCall.name || "")];
+  if (!entry) return null;
+  const verb = tm(`toolSummary.${entry.verb}`);
+  if (!entry.target) return { verb, target: "" };
+  let args = props.toolCall.args ?? props.toolCall.arguments ?? {};
+  if (typeof args === "string") {
+    try {
+      args = JSON.parse(args);
+    } catch {
+      args = {};
+    }
+  }
+  const value = args?.[entry.target];
+  const target = String(value || "")
+    .split(/\r?\n/)
+    .find((line) => line.trim())
+    ?.trim();
+  if (!target) return null;
+  return {
+    verb,
+    target: target.length > 80 ? `${target.slice(0, 77)}…` : target,
+  };
+});
 
 const toolCallIcon = computed(() => {
   const name = String(props.toolCall.name || "");
@@ -374,6 +409,14 @@ onUnmounted(() => {
   margin-bottom: 8px;
   font-size: 12px;
   color: rgb(var(--v-theme-warning));
+}
+
+.tool-call-target {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(var(--v-theme-on-surface), 0.06);
+  font-family: var(--chat-code-font, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.92em;
 }
 
 .tool-call-duration {

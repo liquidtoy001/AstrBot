@@ -376,6 +376,8 @@ async def present_turn(
                                 "time_to_first_token": metrics.first_token_ms / 1000
                                 if metrics.first_token_ms is not None
                                 else None,
+                                "context_breakdown": payload.usage.context.breakdown,
+                                "compactions": payload.usage.context.compactions,
                             }
                         )
                     ],

@@ -73,6 +73,11 @@ export type ChatChunkUploadRequest = {
 };
 
 /**
+ * ChatUI per-conversation auto-compaction threshold in tokens for this request. The runtime raises it to at least max(8192, 20% of the context window) and caps it at the window; omit to compress at the configured point.
+ */
+export type ChatCompactThreshold = number;
+
+/**
  * ChatUI per-conversation fast mode for this request (faster output at a higher price). Applied only when the selected provider supports it (see `supports_fast_mode` in the provider list); otherwise ignored.
  */
 export type ChatFastMode = boolean;
@@ -114,6 +119,7 @@ export type ChatMessageRegenerateRequest = {
     selected_model?: string;
     reasoning_effort?: ChatReasoningEffort;
     permission_mode?: ChatPermissionMode;
+    compact_threshold?: ChatCompactThreshold;
     fast_mode?: ChatFastMode;
     /**
      * Deprecated compatibility field. It is used only when flags.enable_streaming is absent; otherwise flags.enable_streaming takes priority.
@@ -177,6 +183,7 @@ export type ChatRequest = {
     selected_model?: string;
     reasoning_effort?: ChatReasoningEffort;
     permission_mode?: ChatPermissionMode;
+    compact_threshold?: ChatCompactThreshold;
     fast_mode?: ChatFastMode;
     /**
      * Deprecated compatibility field. It is used only when flags.enable_streaming is absent; otherwise flags.enable_streaming takes priority.
@@ -226,6 +233,7 @@ export type ChatThreadMessageRequest = {
     selected_model?: string;
     reasoning_effort?: ChatReasoningEffort;
     permission_mode?: ChatPermissionMode;
+    compact_threshold?: ChatCompactThreshold;
     fast_mode?: ChatFastMode;
     /**
      * Deprecated compatibility field. It is used only when flags.enable_streaming is absent; otherwise flags.enable_streaming takes priority.
@@ -1637,6 +1645,16 @@ export type UndoChatFileChangeData = {
 export type UndoChatFileChangeResponse = (SuccessEnvelope);
 
 export type UndoChatFileChangeError = (unknown);
+
+export type CompactChatSessionData = {
+    path: {
+        session_id: string;
+    };
+};
+
+export type CompactChatSessionResponse = (SuccessEnvelope);
+
+export type CompactChatSessionError = unknown;
 
 export type ResumeChatRunData = {
     path: {

@@ -1155,6 +1155,23 @@ onMounted(async () => {
         </v-icon>
       </v-btn>
 
+      <v-btn
+        v-if="isChatPath"
+        class="chat-action-btn workspace-files-trigger"
+        :class="{
+          'workspace-files-trigger--active': chatHeader.sessionPanelOpen,
+        }"
+        variant="text"
+        size="small"
+        rounded="sm"
+        icon
+        :title="tm('sessionPanel.toggle')"
+        :aria-pressed="chatHeader.sessionPanelOpen"
+        @click="chatHeader.SET_SESSION_PANEL_OPEN(!chatHeader.sessionPanelOpen)"
+      >
+        <v-icon size="20">mdi-format-list-bulleted</v-icon>
+      </v-btn>
+
       <!-- Bot/Chat mode switch - single button, hidden in chat mobile menu -->
       <v-btn
         v-if="!customizer.chatNavigationInSidebar && (!isChatPath || !$vuetify.display.smAndDown)"
