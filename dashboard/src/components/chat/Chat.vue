@@ -1973,7 +1973,8 @@ async function saveProject(formData: ProjectFormData, projectId?: string) {
       await updateProject(
         projectId,
         formData.title,
-        formData.emoji,
+        // Projects no longer have an emoji in the UI; a stored one is kept.
+        undefined,
         formData.description,
         formData.workspace_type,
         formData.workspace_path,
@@ -1982,7 +1983,8 @@ async function saveProject(formData: ProjectFormData, projectId?: string) {
     } else {
       await createProject(
         formData.title,
-        formData.emoji,
+        // Projects no longer have an emoji in the UI; a stored one is kept.
+        undefined,
         formData.description,
         formData.workspace_type,
         formData.workspace_path,

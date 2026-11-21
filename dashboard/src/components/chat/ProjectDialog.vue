@@ -6,7 +6,6 @@
             </v-card-title>
             <v-card-text class="project-dialog-content">
                 <div class="project-name-row">
-                    <EmojiPicker v-model="form.emoji" />
                     <input
                         v-model="form.title"
                         class="project-name-input"
@@ -153,7 +152,6 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n, useModuleI18n } from '@/i18n/composables';
 import { getDesktopRuntimeInfo } from '@/utils/desktopRuntime';
-import EmojiPicker from '@/components/shared/EmojiPicker.vue';
 
 export type WorkspaceType = 'session' | 'project' | 'custom';
 
@@ -173,7 +171,6 @@ export interface Project {
 }
 
 export interface ProjectFormData {
-    emoji: string;
     title: string;
     description: string;
     workspace_type: WorkspaceType;
@@ -209,7 +206,6 @@ const moreSettingsOpen = ref(false);
 const canPickWorkspaceDirectory = ref(false);
 const pickingWorkspaceDirectory = ref(false);
 const form = ref<ProjectFormData>({
-    emoji: '📁',
     title: '',
     description: '',
     workspace_type: 'project',
@@ -246,7 +242,6 @@ watch(() => props.modelValue, async (newVal) => {
         if (props.project) {
             isEditing.value = true;
             form.value = {
-                emoji: props.project.emoji || '📁',
                 title: props.project.title,
                 description: props.project.description || '',
                 workspace_type: props.project.workspace_type || 'session',
@@ -256,7 +251,6 @@ watch(() => props.modelValue, async (newVal) => {
         } else {
             isEditing.value = false;
             form.value = {
-                emoji: '📁',
                 title: '',
                 description: '',
                 workspace_type: 'project',
@@ -357,15 +351,6 @@ function handleSave() {
     box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.14);
 }
 
-.project-name-row :deep(.emoji-picker-trigger) {
-    flex: 0 0 auto;
-    min-width: 40px;
-    height: 38px;
-    padding: 0;
-    border-radius: 9px 0 0 9px;
-    font-size: 20px;
-}
-
 .project-name-input,
 .project-path-input {
     flex: 1 1 auto;
@@ -378,10 +363,6 @@ function handleSave() {
     font: inherit;
     font-size: 0.86rem;
     outline: none;
-}
-
-.project-name-input {
-    padding-left: 2px;
 }
 
 .project-name-input::placeholder,

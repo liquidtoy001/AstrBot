@@ -2,9 +2,6 @@
   <div class="project-sessions-container fade-in">
     <section class="project-header">
       <div class="project-title-row">
-        <span class="project-header-emoji" aria-hidden="true">
-          {{ project?.emoji || "📁" }}
-        </span>
         <div class="project-title-copy">
           <h2 class="project-header-title">{{ project?.title }}</h2>
           <p class="project-header-description" v-if="project?.description">
@@ -162,12 +159,6 @@ async function handleDeleteSession(session: Session) {
   align-items: center;
   gap: 10px;
   min-width: 0;
-}
-
-.project-header-emoji {
-  flex: 0 0 auto;
-  font-size: 28px;
-  line-height: 1;
 }
 
 .project-title-copy {
