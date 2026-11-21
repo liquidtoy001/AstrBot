@@ -101,6 +101,7 @@ async def test_get_session_returns_complete_content_and_pagination_metadata(
                 creator="owner",
                 display_name="Session title",
                 workspace_path=None,
+                pinned=False,
                 is_group=0,
                 created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
                 updated_at=datetime(2026, 1, 1, tzinfo=timezone.utc),

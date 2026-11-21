@@ -79,6 +79,8 @@ test("a project accepts a dragged conversation and ignores other drags", () => {
         useConfirmDialog: () => null,
       },
       "@/composables/useProjects": { SESSION_DRAG_TYPE: DRAG_TYPE },
+      "@/components/chat/ChatContextMenu.vue": {},
+      "@/components/chat/SidebarSessionRow.vue": {},
     },
   ).default;
   const props = {

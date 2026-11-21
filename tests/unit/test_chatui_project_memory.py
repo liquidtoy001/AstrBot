@@ -163,8 +163,8 @@ async def test_database_adds_shared_memory_column_to_old_schema(tmp_path):
         await conn.execute(
             text(
                 "INSERT INTO chatui_projects "
-                "(project_id, creator, title, workspace_type, created_at, updated_at) "
-                "VALUES ('old', 'alice', 'Old', 'project', "
+                "(project_id, creator, title, workspace_type, pinned, created_at, updated_at) "
+                "VALUES ('old', 'alice', 'Old', 'project', 0, "
                 "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
             )
         )
