@@ -232,23 +232,7 @@
   },
   "botSessions": {
     "tabs": {
-      "chats": "我的对话",
-      "bots": "机器人会话"
-    },
-    "private": "私聊",
-    "group": "群聊",
-    "other": "其他",
-    "loading": "正在加载机器人会话",
-    "loadFailed": "机器人会话加载失败",
-    "empty": "机器人还没有在其他平台上聊过天",
-    "readOnly": "只读。这里显示的是模型在这个会话里看到的上下文，不是完整的聊天记录；不能从这里发送消息。",
-    "conversation": "对话（按最近活动排序）",
-    "noConversation": "这个会话还没有对话记录",
-    "historyFailed": "对话记录加载失败"
-  },
-  "botSessions": {
-    "tabs": {
-      "chats": "我的对话",
+      "chats": "聊天对话",
       "bots": "机器人会话"
     },
     "private": "私聊",

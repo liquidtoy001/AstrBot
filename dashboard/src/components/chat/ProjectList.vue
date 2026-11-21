@@ -361,9 +361,9 @@ async function handleDeleteSession(projectId: string, session: ProjectSession) {
   align-items: center;
   justify-content: space-between;
   padding: 0 10px;
-  color: rgb(var(--v-theme-on-surface));
-  font-size: 13px;
-  font-weight: 700;
+  color: var(--chat-section-label);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .project-section-toggle {

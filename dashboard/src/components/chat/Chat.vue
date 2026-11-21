@@ -104,6 +104,40 @@
           <span>{{ tm("actions.providerConfig") }}</span>
         </v-btn>
 
+        <!-- Which list the sidebar shows below: the bot's sessions or ChatUI's chats. -->
+        <template v-if="isSidebarCollapsed">
+          <button
+            v-for="tab in sidebarTabs"
+            :key="tab.key"
+            class="new-chat-btn icon-only chat-sidebar-rail-btn"
+            :class="{
+              'sidebar-workspace-btn--active':
+                sidebarTab === tab.key && !isProviderWorkspace,
+            }"
+            type="button"
+            :title="tm(`botSessions.tabs.${tab.key}`)"
+            @click="selectSidebarTab(tab.key)"
+          >
+            <component :is="tab.icon" :size="18" class="sidebar-action-icon" />
+          </button>
+        </template>
+        <v-btn
+          v-for="tab in sidebarTabs"
+          v-else
+          :key="tab.key"
+          class="new-chat-btn"
+          :class="{
+            'sidebar-workspace-btn--active':
+              sidebarTab === tab.key && !isProviderWorkspace,
+          }"
+          variant="text"
+          :aria-pressed="sidebarTab === tab.key"
+          @click="selectSidebarTab(tab.key)"
+        >
+          <component :is="tab.icon" :size="18" class="sidebar-action-icon mr-2" />
+          <span>{{ tm(`botSessions.tabs.${tab.key}`) }}</span>
+        </v-btn>
+
         <button
           v-if="isSidebarCollapsed"
           class="new-chat-btn icon-only chat-sidebar-rail-btn"
@@ -117,21 +151,6 @@
           <SquarePen :size="18" class="sidebar-action-icon mr-2" />
           <span>{{ tm("actions.newChat") }}</span>
         </v-btn>
-      </div>
-
-      <div v-if="!isSidebarCollapsed" class="sidebar-tabs" role="tablist">
-        <button
-          v-for="tab in ['chats', 'bots'] as const"
-          :key="tab"
-          type="button"
-          role="tab"
-          class="sidebar-tab"
-          :class="{ active: sidebarTab === tab }"
-          :aria-selected="sidebarTab === tab"
-          @click="sidebarTab = tab"
-        >
-          {{ tm(`botSessions.tabs.${tab}`) }}
-        </button>
       </div>
 
       <BotSessionList
@@ -705,8 +724,10 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronRight,
+  Bot,
   Box,
   FolderInput,
+  MessagesSquare,
   PanelLeft,
   Pencil,
   Pin,
@@ -914,6 +935,19 @@ watch(sidebarTab, (tab) => {
     preferences.global.sidebarTab = tab;
   });
 });
+
+const sidebarTabs = [
+  { key: "bots", icon: Bot },
+  { key: "chats", icon: MessagesSquare },
+] as const;
+
+// Choosing a list also leaves the model settings, which share these rows.
+// The collapsed rail has no room for the list, so the sidebar opens.
+function selectSidebarTab(tab: "chats" | "bots") {
+  sidebarTab.value = tab;
+  showChatWorkspace();
+  if (isSidebarCollapsed.value) customizer.SET_CHAT_SIDEBAR_COLLAPSED(false);
+}
 
 const sidebarProjects = ref<InstanceType<typeof ProjectList> | null>(null);
 const sidebarProjectElement = computed<HTMLElement | null>(
@@ -2669,7 +2703,7 @@ async function stopCurrentSession() {
   /* The open conversation or project in the sidebar: a neutral fill
      in the sidebar's own colors, a step darker than hover. */
   --chat-session-selected-bg: rgba(var(--v-theme-on-surface), 0.1);
-  --chat-sidebar-divider: rgba(var(--v-theme-on-surface), 0.08);
+  --chat-sidebar-divider: rgba(var(--v-theme-on-surface), 0.12);
   --chat-page-bg: #fdfcfc;
   --chat-border: #f2f2f2;
   --chat-muted: rgba(var(--v-theme-on-surface), 0.62);
@@ -2701,7 +2735,7 @@ async function stopCurrentSession() {
 .chat-ui.is-dark {
   --chat-session-active-bg: rgba(255, 255, 255, 0.08);
   --chat-session-selected-bg: rgba(255, 255, 255, 0.13);
-  --chat-sidebar-divider: rgba(255, 255, 255, 0.08);
+  --chat-sidebar-divider: rgba(255, 255, 255, 0.12);
   --chat-page-bg: rgb(var(--v-theme-background));
   --chat-border: rgba(255, 255, 255, 0.1);
   --chat-section-label: rgba(255, 255, 255, 0.5);
@@ -2717,7 +2751,7 @@ async function stopCurrentSession() {
   top: 0 !important;
   height: 100dvh !important;
   background: var(--astrbot-chrome-bg, rgb(var(--v-theme-surface)));
-  border-right: 0;
+  border-right: 1px solid var(--chat-sidebar-divider);
   user-select: none;
 }
 
@@ -2739,7 +2773,6 @@ async function stopCurrentSession() {
 
 .chat-sidebar.collapsed {
   background: var(--astrbot-chrome-bg, rgb(var(--v-theme-surface)));
-  border-right: 0;
 }
 
 .chat-sidebar :deep(.v-navigation-drawer__content) {
@@ -3064,9 +3097,9 @@ async function stopCurrentSession() {
   display: flex;
   align-items: center;
   padding: 0 10px;
-  color: rgb(var(--v-theme-on-surface));
-  font-size: 13px;
-  font-weight: 700;
+  color: var(--chat-section-label);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .session-section-toggle {
@@ -3099,34 +3132,6 @@ async function stopCurrentSession() {
   gap: 2px;
 }
 
-/* Text tabs in the type of the group titles, the active one underlined. */
-.sidebar-tabs {
-  display: flex;
-  gap: 16px;
-  margin: 6px 16px 4px;
-  padding: 0 10px;
-  border-bottom: 1px solid var(--chat-sidebar-divider);
-}
-
-.sidebar-tab {
-  min-height: 30px;
-  margin-bottom: -1px;
-  border-bottom: 2px solid transparent;
-  color: var(--chat-muted);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.sidebar-tab:hover {
-  color: rgb(var(--v-theme-on-surface));
-}
-
-.sidebar-tab.active {
-  border-bottom-color: currentcolor;
-  color: rgb(var(--v-theme-on-surface));
-}
-
 .pinned-section-header {
   min-height: 36px;
 }
@@ -3135,7 +3140,7 @@ async function stopCurrentSession() {
    background stays the sidebar's own. */
 .sidebar-footer {
   margin-top: auto;
-  padding: 8px 16px 10px;
+  padding: 4px 16px;
   border-top: 1px solid var(--chat-sidebar-divider);
 }
 
