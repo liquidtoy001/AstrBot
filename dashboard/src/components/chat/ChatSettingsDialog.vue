@@ -38,7 +38,7 @@
       <div class="settings-main">
         <v-card-title class="text-h3 pa-4 pb-0 pl-6 settings-heading">
           {{
-            activeSection === "agent"
+            activeSection === "subagents"
               ? tm("agentSettings.title")
               : tm(`settings.${activeSection}`)
           }}
@@ -77,7 +77,7 @@
             </div>
           </div>
 
-          <template v-else-if="activeSection === 'agent'">
+          <template v-else-if="activeSection === 'subagents'">
             <div class="settings-item-subtitle agent-hint">
               {{
                 agentShared ? tm("agentSettings.hint") : tm("agentSettings.hintOwn")
@@ -276,7 +276,11 @@ const activeSection = ref("general");
 const sections = computed(() => [
   { id: "general", title: tm("settings.general"), icon: "mdi-cog-outline" },
   { id: "chat", title: tm("settings.chat"), icon: "mdi-message-outline" },
-  { id: "agent", title: tm("agentSettings.title"), icon: "mdi-robot-outline" },
+  {
+    id: "subagents",
+    title: tm("agentSettings.title"),
+    icon: "mdi-account-multiple-outline",
+  },
 ]);
 const themeOptions = computed(() => [
   { title: tm("settings.light"), value: "light" },
@@ -292,14 +296,12 @@ const transportOptions = computed(() => [
   { title: tm("transport.websocket"), value: "websocket" },
 ]);
 
-// Agent settings of the config profile this conversation uses, rendered with
-// the config page's own sections (same labels, hints and validation) and
-// saved through the regular config profile API.
-const AGENT_SECTIONS = [
-  "persona",
-  "truncate_and_compress",
-  "agent_computer_use",
-];
+// Sub-agent settings of the config profile this conversation uses, rendered
+// with the config page's own section (same labels, hints and validation) and
+// saved through the regular config profile API. Persona, context and computer
+// use settings stay on the config page: the persona group also edits the
+// shared persona itself, which reaches every bot that uses it.
+const AGENT_SECTIONS = ["subagents"];
 // Route that sends every ChatUI session to one profile (see UmopConfigRouter).
 const CHATUI_ROUTE = "webchat::";
 
@@ -431,7 +433,7 @@ async function createChatUiProfile() {
 watch(
   () => [props.modelValue, activeSection.value, props.sessionId],
   () => {
-    if (props.modelValue && activeSection.value === "agent") {
+    if (props.modelValue && activeSection.value === "subagents") {
       void loadAgentSettings();
     }
   },

@@ -94,7 +94,7 @@
 - The Session panel sets an earlier auto-compact threshold for the current conversation (50%/40%/30% of the window, never below the larger of 8192 tokens and 20% of the window, stored with the other per-conversation options and sent as `compact_threshold`) and can **Compact conversation** right away; it is refused while a reply runs.
 - 工具卡片标题写出运行的命令或改动的文件，运行详情中思考块的标题分别统计命令、文件和子代理。
 - Tool cards name the command run or the file changed, and thinking block titles in the run details count commands, files, and sub-agents separately.
-- ChatUI **设置 → 智能体**：修改当前对话所用配置文件的人格、上下文管理策略和使用电脑能力几组设置；**单独建一份** 为 ChatUI 创建专用配置文件。
-- ChatUI **Settings → Agent**: edit the Persona, Context Management Strategy, and Agent Computer Use groups of the conversation's config profile; **Create ChatUI profile** gives ChatUI its own profile.
+- ChatUI **设置 → 子代理**：修改当前对话所用配置文件的子代理设置；**单独建一份** 为 ChatUI 创建专用配置文件。
+- ChatUI **Settings → Subagents**: edit the sub-agent settings of the conversation's config profile; **Create ChatUI profile** gives ChatUI its own profile.
 - 新增接口 `POST /api/v1/chat/sessions/{session_id}/compact`、`GET .../settings`、`PUT .../persona`，只允许会话本人访问。每轮的 `agent_stats` 新增 `context_breakdown` 和 `compactions`。
 - Add `POST /api/v1/chat/sessions/{session_id}/compact`, `GET .../settings`, and `PUT .../persona`, limited to the session's owner. Each turn's `agent_stats` gains `context_breakdown` and `compactions`.

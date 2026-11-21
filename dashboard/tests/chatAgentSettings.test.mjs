@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { reactive } from "vue";
 import { loadSource, mountSetup } from "./helpers/vueHarness.mjs";
@@ -22,7 +23,18 @@ function mountDialog({ routing = {}, configId = "default" } = {}) {
           get: async (id) =>
             ok({
               config: { agent: { config: { subagents: { enabled: false } } } },
-              metadata: { ai_group: { metadata: { agent_computer_use: { items: {} }, other: {} } } },
+              // The profile also has the persona, context and computer use groups.
+              metadata: {
+                ai_group: {
+                  metadata: {
+                    persona: { items: {} },
+                    truncate_and_compress: { items: {} },
+                    subagents: { items: {} },
+                    agent_computer_use: { items: {} },
+                    other: {},
+                  },
+                },
+              },
             }),
           update: async (id, config) => (calls.push(["update", id, config]), ok({})),
           create: async (body) => (calls.push(["create", body.name]), ok({ conf_id: "chatui" })),
@@ -60,10 +72,11 @@ for (const [label, routing, configId, shared] of [
     const dialog = mountDialog({ routing, configId });
     await dialog.state.loadAgentSettings();
     assert.equal(dialog.state.agentShared, shared);
-    // Only the configured sections the metadata actually has are rendered.
+    // Only the sub-agent group is rendered; the persona group would also edit
+    // the shared persona, so it stays on the config page.
     assert.deepEqual(
       JSON.parse(JSON.stringify(dialog.state.agentSections.map((section) => section.key))),
-      ["agent_computer_use"],
+      ["subagents"],
     );
     dialog.stop();
   });
@@ -89,4 +102,24 @@ test("agent page saves edits through the profile API and creates a ChatUI profil
   );
   assert.equal(dialog.state.agentStatus, "agentSettings.ownDone");
   dialog.stop();
+});
+
+test("the page is named after sub-agents in every language", () => {
+  const titles = Object.fromEntries(
+    ["en-US", "zh-CN", "ja-JP", "ru-RU"].map((locale) => [
+      locale,
+      JSON.parse(
+        readFileSync(
+          new URL(`../src/i18n/locales/${locale}/features/chat.json`, import.meta.url),
+          "utf8",
+        ).trimStart(), // drops a byte order mark
+      ).agentSettings.title,
+    ]),
+  );
+  assert.deepEqual(titles, {
+    "en-US": "Subagents",
+    "zh-CN": "子代理",
+    "ja-JP": "サブエージェント",
+    "ru-RU": "Субагенты",
+  });
 });

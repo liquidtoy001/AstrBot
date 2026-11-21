@@ -244,9 +244,9 @@
     "tooltip": "{used} / {limit} tokens ({percent}%)"
   },
   "agentSettings": {
-    "title": "Agent",
-    "hint": "Settings of the config profile this conversation uses; bot platforms on the same profile use them too.",
-    "hintOwn": "Settings of the ChatUI-only config profile; they do not affect bot platforms.",
+    "title": "Subagents",
+    "hint": "Sub-agent settings of the config profile this conversation uses; bot platforms on the same profile use them too.",
+    "hintOwn": "Sub-agent settings of the ChatUI-only config profile; they do not affect bot platforms.",
     "profile": "Config profile: {name}",
     "ownTitle": "Separate from bot platforms",
     "ownHint": "Copy the current config into a \"ChatUI\" profile and route all ChatUI conversations to it (except ones with an explicitly chosen profile), so changes here no longer affect bots.",
