@@ -368,7 +368,7 @@
             :aria-label="tm('workbench.title')"
             @click="workbench?.tabs.length ? (workbench.open = true) : openWorkbenchPage()"
           >
-            <PanelRightOpen :size="18" />
+            <Globe :size="18" />
           </button>
         </Teleport>
         <v-progress-linear
@@ -683,7 +683,7 @@ import {
   ChevronRight,
   Box,
   PanelLeft,
-  PanelRightOpen,
+  Globe,
   Pencil,
   Settings,
   SquarePen,
