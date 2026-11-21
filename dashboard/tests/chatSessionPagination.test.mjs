@@ -69,7 +69,7 @@ function setup() {
     ts.ScriptTarget.Latest,
     true,
   );
-  for (const name of ["loadMoreSessions", "saveSessionTitleDialog"]) {
+  for (const name of ["loadMoreSessions", "saveSessionEdit"]) {
     const handler = chatAst.statements.find(
       (node) => ts.isFunctionDeclaration(node) && node.name.text === name,
     );
@@ -469,22 +469,31 @@ test("renaming an unloaded session refreshes page boundaries so traversal loses 
     const renamed = rows.find((row) => row.session_id === id);
     Object.assign(renamed, body);
     rows = [renamed, ...rows.filter((row) => row !== renamed)];
+    return { data: { status: "ok" } };
   };
   Object.assign(context, {
-    updateSessionTitle: state.updateSessionTitle,
-    editingSessionTitleId: ref("90"),
-    savingSessionTitle: ref(false),
-    sessionTitleDraft: ref("Renamed 90"),
-    sessionTitleDialogOpen: ref(true),
+    sessions: state.sessions,
+    editingSessionId: ref("90"),
+    editingSession: ref({
+      display_name: "Session 90",
+      project_id: "",
+      workspace_path: "",
+    }),
+    savingSession: ref(false),
+    sessionEditError: ref(""),
+    sessionEditOpen: ref(true),
     sessionDetails: reactive({ 90: structuredClone(rows[89]) }),
     projectSessions: ref([]),
     projectSessionsById: ref({}),
-    refreshProjectSessionsAfterTitleSave: ref(false),
   });
   await state.getSessions();
   await state.getSessions(true);
   state.currSessionId.value = "90";
-  await context.saveSessionTitleDialog();
+  await context.saveSessionEdit({
+    display_name: "Renamed 90",
+    project_id: "",
+    workspace_path: "",
+  });
   assert.deepEqual(pages, [1, 2, 1, 2], "rename must refresh the loaded range");
   assert.equal(state.sessions.value.length, 60);
   assert.equal(state.sessions.value[0].session_id, "90");
