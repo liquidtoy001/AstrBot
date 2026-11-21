@@ -143,7 +143,7 @@ onMounted(load);
 }
 
 .bot-session-row.active {
-  background: rgba(var(--v-theme-primary), 0.22);
+  background: var(--chat-session-selected-bg);
 }
 
 .bot-session-title {

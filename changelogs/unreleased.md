@@ -137,4 +137,6 @@
 - A pinned conversation inside a project is now also listed in the **Pinned** group at the top of the sidebar, followed by its project name, and still comes first in its project. The session list API therefore returns pinned conversations of projects, with `project_id` and `project_title`.
 - 侧边栏的「我的对话 / 机器人会话」切换由胶囊形改为下划线式的文字标签；左下角「设置」所在的区域加了分隔线和略深的底色，与上方滚动的列表区分开。
 - The **My chats / Bot sessions** switch in the sidebar changed from a pill to underlined text tabs; the area holding **Settings** at the bottom left has a divider and a slightly darker background to set it apart from the scrolling lists above.
+- 侧边栏改为同一套中性配色：当前打开的对话、项目和机器人会话用比悬停稍深的灰色底，不再用主题色；左下角「设置」区域只保留一条细分隔线，底色与侧边栏相同；标签下划线改用文字颜色。
+- The sidebar uses one set of neutral colors: the open conversation, project or bot session has a grey fill a step darker than hover instead of the theme color; the **Settings** area at the bottom left keeps only a thin divider on the sidebar's own background; the tab underline uses the text color.
 

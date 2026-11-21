@@ -2666,6 +2666,10 @@ async function stopCurrentSession() {
      window toolbar. Keep them flush with the content area's top edge. */
   --chat-panel-top-offset: 0px;
   --chat-session-active-bg: rgba(var(--v-theme-on-surface), 0.05);
+  /* The open conversation or project in the sidebar: a neutral fill
+     in the sidebar's own colors, a step darker than hover. */
+  --chat-session-selected-bg: rgba(var(--v-theme-on-surface), 0.1);
+  --chat-sidebar-divider: rgba(var(--v-theme-on-surface), 0.08);
   --chat-page-bg: #fdfcfc;
   --chat-border: #f2f2f2;
   --chat-muted: rgba(var(--v-theme-on-surface), 0.62);
@@ -2696,6 +2700,8 @@ async function stopCurrentSession() {
 
 .chat-ui.is-dark {
   --chat-session-active-bg: rgba(255, 255, 255, 0.08);
+  --chat-session-selected-bg: rgba(255, 255, 255, 0.13);
+  --chat-sidebar-divider: rgba(255, 255, 255, 0.08);
   --chat-page-bg: rgb(var(--v-theme-background));
   --chat-border: rgba(255, 255, 255, 0.1);
   --chat-section-label: rgba(255, 255, 255, 0.5);
@@ -3099,7 +3105,7 @@ async function stopCurrentSession() {
   gap: 16px;
   margin: 6px 16px 4px;
   padding: 0 10px;
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  border-bottom: 1px solid var(--chat-sidebar-divider);
 }
 
 .sidebar-tab {
@@ -3117,7 +3123,7 @@ async function stopCurrentSession() {
 }
 
 .sidebar-tab.active {
-  border-bottom-color: rgb(var(--v-theme-primary));
+  border-bottom-color: currentcolor;
   color: rgb(var(--v-theme-on-surface));
 }
 
@@ -3125,12 +3131,12 @@ async function stopCurrentSession() {
   min-height: 36px;
 }
 
-/* Set apart from the lists that scroll above it. */
+/* A thin line sets it apart from the lists that scroll above it; the
+   background stays the sidebar's own. */
 .sidebar-footer {
   margin-top: auto;
   padding: 8px 16px 10px;
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  background: rgba(var(--v-theme-on-surface), 0.03);
+  border-top: 1px solid var(--chat-sidebar-divider);
 }
 
 .chat-sidebar.collapsed .sidebar-footer {

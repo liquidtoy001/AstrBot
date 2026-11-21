@@ -446,7 +446,7 @@ async function handleDeleteSession(projectId: string, session: ProjectSession) {
 }
 
 .project-row.active {
-  background: rgba(var(--v-theme-primary), 0.22);
+  background: var(--chat-session-selected-bg);
 }
 
 .project-row.drop-target {
