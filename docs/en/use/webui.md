@@ -160,6 +160,8 @@ Opening a bot session shows its conversation on the right, for viewing only:
 
 - It shows the context the model sees in that session, not the full chat log. Earlier messages are missing after the context was compacted or reset, and messages that did not wake the bot are not included.
 - When a session has several conversations, the most recently active one is shown; switch with the select box above the messages.
+- It opens at the latest message. A long record shows the latest 200 messages first; choose **Show N earlier messages** above them to load more.
+- A session the bot knows no name for is shown by its session number (group or user number).
 - You cannot send messages from here, nor edit or delete. To change the title or persona, or to delete, keep using **Data & Logs → Conversations**.
 - Bot sessions cannot be pinned or put into a project.
 

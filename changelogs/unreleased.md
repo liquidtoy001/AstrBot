@@ -141,4 +141,6 @@
 - The sidebar uses one set of neutral colors: the open conversation, project or bot session has a grey fill a step darker than hover instead of the theme color; the **Settings** area at the bottom left keeps only a thin divider on the sidebar's own background; the tab underline uses the text color.
 - 侧边栏再调整：「聊天对话」（原「我的对话」）和「机器人会话」改为带图标的按钮行，与「模型配置」「创建对话」放在一起，顺序为模型配置、机器人会话、聊天对话、创建对话；侧边栏右侧加一条分隔线；「设置」区域变矮；分组标题改回浅灰、不加粗。
 - More sidebar changes: **Chats** (formerly **My chats**) and **Bot sessions** become icon rows next to **Model Configuration** and **New Chat**, in the order Model Configuration, Bot sessions, Chats, New Chat; the sidebar has a divider on its right edge; the **Settings** area is shorter; group titles are light grey and not bold again.
+- 机器人会话只读查看：打开时停在最新消息；记录很长时先显示最近 200 条，可点「显示更早的 N 条」继续加载（1000 多条的上下文一次渲染要 1 秒以上）。机器人不知道名字的会话显示会话号，不再显示整串会话标识或「None」。
+- Read-only bot sessions: a session opens at its latest message; a long record shows the latest 200 messages first, with **Show N earlier messages** to load more (rendering a context of over a thousand messages at once took more than a second). A session the bot knows no name for is shown by its session number instead of the whole session identifier or "None".
 
