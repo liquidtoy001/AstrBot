@@ -75,3 +75,6 @@
 
 - ChatUI 的模型按钮只显示模型名，不再显示提供商 ID；悬停显示完整的提供商 ID，菜单中仍按提供商列出。
 - The ChatUI model button shows only the model name instead of the provider ID; hover to see the full provider ID, and the menu still lists entries by provider.
+
+- 消息下方的编辑、重新生成、复制、详情按钮悬停或键盘聚焦时显示名称和一句说明；编辑或重新生成不可用时显示原因，这时它们也可以用 Tab 聚焦查看原因。
+- The edit, regenerate, copy and details buttons under a message show a name and a one-line description on hover or keyboard focus. When edit or regenerate is unavailable they show the reason, and they can still be reached with Tab to read it.
