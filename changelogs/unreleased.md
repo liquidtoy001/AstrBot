@@ -75,3 +75,6 @@
 
 - ChatUI 的模型按钮只显示模型名，不再显示提供商 ID；悬停显示完整的提供商 ID，菜单中仍按提供商列出。
 - The ChatUI model button shows only the model name instead of the provider ID; hover to see the full provider ID, and the menu still lists entries by provider.
+
+- 机器人回复的头像改用 AstrBot 标志；回复进行中时标志播放动画（小星环绕、金蓝交替），静止时仍是原来的标志，系统开启减少动态效果时不播放。
+- Bot replies use the AstrBot mark as their avatar. While a reply is in progress the mark animates (the small star circles the large one, gold and blue take turns); at rest it is the original mark, and it stays still when the system asks for reduced motion.
