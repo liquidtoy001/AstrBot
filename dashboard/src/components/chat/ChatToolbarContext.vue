@@ -57,10 +57,6 @@ function finishRename(save: boolean) {
   }
 }
 
-function onTitleInput(event: Event) {
-  draft.value = (event.target as HTMLInputElement).value;
-}
-
 function onTitleInputKeydown(event: KeyboardEvent) {
   // Enter also confirms IME candidates; leave those to the input method.
   if (event.isComposing) return;
@@ -75,6 +71,31 @@ watch(
   () => chatHeader.titleSessionId,
   () => finishRename(false),
 );
+
+// Desktop app: the renamable title still drags the window like the rest of the
+// header, but only once the mouse moves, so a double-click reaches the rename
+// instead of the shell's maximize. Browsers have no Tauri API and skip this.
+let dragStart: { x: number; y: number } | null = null;
+
+function onTitleMousedown(event: MouseEvent) {
+  dragStart =
+    renamable.value && event.button === 0 && event.detail === 1
+      ? { x: event.clientX, y: event.clientY }
+      : null;
+}
+
+function onTitleMousemove(event: MouseEvent) {
+  if (!dragStart) return;
+  if (!(event.buttons & 1)) {
+    dragStart = null;
+    return;
+  }
+  if (Math.abs(event.clientX - dragStart.x) + Math.abs(event.clientY - dragStart.y) < 4) return;
+  dragStart = null;
+  const tauri = (window as { __TAURI_INTERNALS__?: { invoke: (cmd: string) => Promise<unknown> } })
+    .__TAURI_INTERNALS__;
+  tauri?.invoke("plugin:window|start_dragging").catch(() => {});
+}
 </script>
 
 <template>
@@ -100,8 +121,7 @@ watch(
     <input
       v-if="editing"
       ref="titleInput"
-      :value="draft"
-      @input="onTitleInput"
+      v-model="draft"
       class="chat-toolbar-context-title chat-toolbar-title-input"
       :aria-label="tmChat('conversation.displayName')"
       @keydown="onTitleInputKeydown"
@@ -116,6 +136,9 @@ watch(
       :tabindex="renamable ? 0 : undefined"
       :role="renamable ? 'button' : undefined"
       :aria-label="renamable ? `${title}, ${renameHint}` : undefined"
+      :data-tauri-drag-region="renamable ? undefined : ''"
+      @mousedown="onTitleMousedown"
+      @mousemove="onTitleMousemove"
       @dblclick="startRename"
       @keydown.enter.prevent="startRename"
       @keydown.f2.prevent="startRename"
@@ -175,8 +198,12 @@ watch(
   text-overflow: ellipsis;
 }
 
-/* Not part of the desktop window drag region, so no drag or maximize. */
-.chat-toolbar-context-title.renamable,
+/* The title drags the window from script (see onTitleMousemove); the input
+   never does, so selecting text cannot move the window. */
+.chat-toolbar-context-title.renamable {
+  cursor: default;
+}
+
 .chat-toolbar-title-input {
   -webkit-app-region: no-drag;
 }
