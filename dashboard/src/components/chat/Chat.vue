@@ -1176,20 +1176,26 @@ watch(
       subtitle,
       projectId: project?.project_id,
       // Only the chat workspace renames its conversation, not the model pages.
-      titleRenamable: Boolean(session) && !providers,
+      titleSessionId: session && !providers ? session.session_id : "",
     });
   },
   { immediate: true },
 );
 
 watch(
-  () => chatHeader.renameRequested,
-  (requested) => {
-    if (!requested) return;
-    chatHeader.renameRequested = false;
-    // REQUEST_RENAME already requires a renamable title (a conversation open
-    // in the chat workspace).
-    if (currentSession.value) editSidebarSessionTitle(currentSession.value);
+  () => chatHeader.renameRequest,
+  (request) => {
+    if (!request) return;
+    chatHeader.renameRequest = null;
+    // Save the header's in-place edit through the rename dialog's save path,
+    // for the conversation that was open when editing started.
+    editingSessionTitleId.value = request.sessionId;
+    sessionTitleDraft.value = request.title;
+    refreshProjectSessionsAfterTitleSave.value = false;
+    saveSessionTitleDialog().catch((error) => {
+      console.error("Failed to rename the conversation:", error);
+      toast.error(tm("conversation.displayNameUpdateFailed"));
+    });
   },
 );
 

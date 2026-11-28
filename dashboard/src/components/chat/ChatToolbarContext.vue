@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ChevronDown } from "@lucide/vue";
 import StyledMenu from "@/components/shared/StyledMenu.vue";
@@ -27,6 +27,54 @@ const title = computed(() => {
   if (t && s) return `${s} / ${t}`;
   return t || s;
 });
+
+// In-place rename of the open conversation. The conversation is fixed when
+// editing starts, and switching conversations cancels the edit.
+const renamable = computed(() => Boolean(chatHeader.titleSessionId));
+const renameHint = computed(() => tmChat("conversation.renameTitleHint"));
+const editing = ref(false);
+const draft = ref("");
+const titleEl = ref<HTMLElement | null>(null);
+const titleInput = ref<HTMLInputElement | null>(null);
+let editingSessionId = "";
+
+async function startRename() {
+  if (!renamable.value || editing.value) return;
+  editingSessionId = chatHeader.titleSessionId;
+  draft.value = chatHeader.title;
+  editing.value = true;
+  await nextTick();
+  titleInput.value?.focus();
+  titleInput.value?.select();
+}
+
+function finishRename(save: boolean) {
+  if (!editing.value) return;
+  editing.value = false;
+  const name = draft.value.trim();
+  if (save && name && name !== chatHeader.title.trim()) {
+    chatHeader.REQUEST_RENAME(editingSessionId, name);
+  }
+}
+
+function onTitleInput(event: Event) {
+  draft.value = (event.target as HTMLInputElement).value;
+}
+
+function onTitleInputKeydown(event: KeyboardEvent) {
+  // Enter also confirms IME candidates; leave those to the input method.
+  if (event.isComposing) return;
+  if (event.key !== "Enter" && event.key !== "Escape") return;
+  event.preventDefault();
+  finishRename(event.key === "Enter");
+  // Keyboard users stay on the title.
+  nextTick(() => titleEl.value?.focus());
+}
+
+watch(
+  () => chatHeader.titleSessionId,
+  () => finishRename(false),
+);
 </script>
 
 <template>
@@ -49,15 +97,28 @@ const title = computed(() => {
       </v-list-item>
     </StyledMenu>
     <ProviderModelMenu v-else variant="header" />
+    <input
+      v-if="editing"
+      ref="titleInput"
+      :value="draft"
+      @input="onTitleInput"
+      class="chat-toolbar-context-title chat-toolbar-title-input"
+      :aria-label="tmChat('conversation.displayName')"
+      @keydown="onTitleInputKeydown"
+      @blur="finishRename(true)"
+    />
     <span
-      v-if="title"
+      v-else-if="title"
+      ref="titleEl"
       class="chat-toolbar-context-title"
-      :title="
-        chatHeader.titleRenamable
-          ? `${title}\n${tmChat('conversation.renameByDoubleClick')}`
-          : title
-      "
-      @dblclick="chatHeader.REQUEST_RENAME()"
+      :class="{ renamable }"
+      :title="renamable ? `${title}\n${renameHint}` : title"
+      :tabindex="renamable ? 0 : undefined"
+      :role="renamable ? 'button' : undefined"
+      :aria-label="renamable ? `${title}, ${renameHint}` : undefined"
+      @dblclick="startRename"
+      @keydown.enter.prevent="startRename"
+      @keydown.f2.prevent="startRename"
       >{{ title }}</span
     >
   </div>
@@ -112,6 +173,29 @@ const title = computed(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Not part of the desktop window drag region, so no drag or maximize. */
+.chat-toolbar-context-title.renamable,
+.chat-toolbar-title-input {
+  -webkit-app-region: no-drag;
+}
+
+.chat-toolbar-context-title.renamable:focus-visible {
+  outline: 2px solid rgba(var(--v-theme-primary), 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.chat-toolbar-title-input {
+  min-width: 120px;
+  padding: 1px 6px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.6);
+  border-radius: 6px;
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+  font-family: inherit;
+  outline: none;
 }
 
 @media (min-width: 960px) {

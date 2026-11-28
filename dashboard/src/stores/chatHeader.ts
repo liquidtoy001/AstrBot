@@ -4,10 +4,10 @@ export const useChatHeaderStore = defineStore("chatHeader", {
   state: () => ({
     title: "",
     subtitle: "",
-    // Double-clicking the header title asks the chat page to rename the
-    // current conversation with its usual dialog.
-    titleRenamable: false,
-    renameRequested: false,
+    // Conversation whose title can be renamed in place; empty elsewhere.
+    titleSessionId: "",
+    // Name typed in the header, saved by the chat page.
+    renameRequest: null as { sessionId: string; title: string } | null,
     projectId: "",
     workspaceFilesOpen: false,
     workbenchWidth: null as number | null,
@@ -18,7 +18,7 @@ export const useChatHeaderStore = defineStore("chatHeader", {
       title?: string;
       subtitle?: string;
       projectId?: string;
-      titleRenamable?: boolean;
+      titleSessionId?: string;
     }) {
       const nextProjectId = payload.projectId || "";
       if (this.projectId !== nextProjectId) {
@@ -27,10 +27,10 @@ export const useChatHeaderStore = defineStore("chatHeader", {
       this.title = payload.title || "";
       this.subtitle = payload.subtitle || "";
       this.projectId = nextProjectId;
-      this.titleRenamable = Boolean(payload.titleRenamable);
+      this.titleSessionId = payload.titleSessionId || "";
     },
-    REQUEST_RENAME() {
-      if (this.titleRenamable) this.renameRequested = true;
+    REQUEST_RENAME(sessionId: string, title: string) {
+      this.renameRequest = { sessionId, title };
     },
     TOGGLE_WORKSPACE_FILES() {
       if (this.projectId) {
@@ -45,8 +45,8 @@ export const useChatHeaderStore = defineStore("chatHeader", {
       this.subtitle = "";
       this.projectId = "";
       this.workspaceFilesOpen = false;
-      this.titleRenamable = false;
-      this.renameRequested = false;
+      this.titleSessionId = "";
+      this.renameRequest = null;
     },
   },
 });

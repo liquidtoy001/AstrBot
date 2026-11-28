@@ -41,8 +41,8 @@
 
 ### ChatUI header / ChatUI 顶栏
 
-- 双击 ChatUI 顶栏中间的对话标题，用原来的「编辑会话名称」对话框重命名当前对话；只有项目标题、没有打开对话时，以及在模型配置页时不响应。
-- Double-click the conversation title in the middle of the ChatUI header to rename the current conversation with the usual **Edit Session Name** dialog; a project-only title, or the title on the model provider pages, does nothing.
+- 双击 ChatUI 顶栏中间的对话标题即可在原处重命名当前对话（聚焦标题后按 Enter 或 F2 也可以）：回车或点别处保存，Esc 取消；只有项目标题、没有打开对话时，以及在模型配置页时不响应。
+- Double-click the conversation title in the middle of the ChatUI header to rename the current conversation in place (or focus the title and press Enter or F2): Enter or clicking elsewhere saves, Esc cancels. A project-only title, or the title on the model provider pages, does nothing.
 
 ### Overview page / 总览页
 
